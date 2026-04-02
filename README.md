@@ -4,8 +4,10 @@ RiskLab Charts is a typed chart package family for analytical products,
 dashboards, internal tools, and data-heavy application shells.
 
 If you are building a full analytical application shell, pair these packages
-with `@risklab/workbench` from the RiskLab UI repo. Charts are one panel type
-in that workbench model, not the whole product.
+with `@risklab/workbench` from the RiskLab UI repo, or use `@risklab/mission`
+from the standalone RiskLab Mission repo when you want guided operator-facing
+templates. Charts are one panel type in those higher-level shells, not the
+whole product.
 
 This repo ships:
 
@@ -21,6 +23,7 @@ This repo ships:
 | --- | --- | --- |
 | React charts | `npm install @risklab/charts @risklab/charts-react` | Recommended evaluation path |
 | React analytical workbench | `npm install @risklab/workbench @risklab/charts @risklab/charts-react` | Recommended full app path when you need shell, layout, and coordinated state |
+| React mission starter | `npm install @risklab/mission @risklab/mission-react @risklab/workbench @risklab/ui-react @risklab/charts @risklab/charts-react` | Use the mission repo when you want guided mission templates on top of the base chart stack |
 | Vanilla or Web Components charts | `npm install @risklab/charts @risklab/charts-vanilla` | Best path for static sites and mixed stacks |
 | Vue, Svelte, Angular, Lit, Solid | install `@risklab/charts` plus the matching `@risklab/charts-*` adapter | Keep the framework choice explicit during review |
 

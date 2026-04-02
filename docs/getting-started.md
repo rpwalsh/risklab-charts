@@ -9,6 +9,7 @@ install.
 | --- | --- |
 | React charts | `npm install @risklab/charts @risklab/charts-react` |
 | React analytical workbench | `npm install @risklab/workbench @risklab/charts @risklab/charts-react` |
+| React mission starter | `npm install @risklab/mission @risklab/mission-react @risklab/workbench @risklab/ui-react @risklab/charts @risklab/charts-react` |
 | Vanilla or Web Components charts | `npm install @risklab/charts @risklab/charts-vanilla` |
 | Vue, Svelte, Angular, Lit, Solid | install `@risklab/charts` plus the matching `@risklab/charts-*` adapter |
 
@@ -46,7 +47,9 @@ Reference file: [examples/quickstart-react.tsx](../examples/quickstart-react.tsx
 
 If you are building a full analytical application rather than a single chart
 surface, pair this repo with `@risklab/workbench` for shell, panel layout,
-query/filter state, and inspectors.
+query/filter state, and inspectors. If you want guided mission templates on
+top of that shell, add `@risklab/mission` and the matching `@risklab/mission-*`
+package from the RiskLab Mission repo.
 
 ## Vanilla quick start
 
