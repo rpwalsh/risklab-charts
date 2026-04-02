@@ -253,10 +253,9 @@ export { RiskLabChartElement, defineRiskLabElement } from './adapters/webcompone
 export {
   stylexToTheme,
   chartStyles,
-  themeToCSSVars,
-  applyThemeCSSVars,
   mergeClassNames,
 } from './adapters/stylex/index';
+export { themeToCSSVars, applyThemeCSSVars } from './themes/cssVars';
 
 // â”€â”€â”€ SDK â€” Fluent ChartBuilder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export { ChartBuilder, BoundChartBuilder, chart, charts } from './sdk/index';

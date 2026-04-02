@@ -46,6 +46,11 @@
                                        "import":  "./dist/esm/themes/palettes.js",
                                        "require":  "./dist/cjs/themes/palettes.js"
                                    },
+                    "./css-vars":  {
+                                       "types":  "./dist/types/themes/cssVars.d.ts",
+                                       "import":  "./dist/esm/themes/cssVars.js",
+                                       "require":  "./dist/cjs/themes/cssVars.js"
+                                   },
                     "./advanced":  {
                                        "types":  "./dist/types/charts/advanced/index.d.ts",
                                        "import":  "./dist/esm/charts/advanced/index.js",
@@ -184,7 +189,7 @@
               ],
     "funding":  {
                     "type":  "github",
-                    "url":  "https://github.com/sponsors/risklab"
+                    "url":  "https://github.com/sponsors/rpwalsh"
                 },
     "scripts":  {
                     "build":  "tsc -p tsconfig.build.json \u0026\u0026 tsc -p tsconfig.cjs.json",
