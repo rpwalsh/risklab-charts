@@ -1,0 +1,146 @@
+// ============================================================================
+// RiskLab Charts — Lit Element Adapter
+// Google's Lit framework integration.  Lit is used at Google, YouTube,
+// Google Maps, and throughout the web-components ecosystem.
+//
+// Provides:
+//   <uc-chart>  — custom element / Lit component
+//   RiskLabLitElement — base class to extend
+//
+// Usage (declarative HTML):
+//   <uc-chart
+//     type="bar"
+//     theme="dark"
+//     .config="${myConfig}"
+//     @uc-ready="${onReady}"
+//   ></uc-chart>
+//
+// Usage (Lit class extension):
+//   class MyChart extends RiskLabLitElement { ... }
+//   customElements.define('my-chart', MyChart);
+// ============================================================================
+
+import type {
+  ChartConfig, ThemeConfig, SeriesConfig, DataPoint,
+  ChartEventType, ChartEventHandler,
+} from '../../core/types';
+import { Engine } from '../../core/Engine';
+
+// ── Imperative factory (Lit-peer-dep-free) ────────────────────────────────────
+
+export interface LitChartRef {
+  engine: Engine | null;
+  destroy(): void;
+  update(config: Partial<ChartConfig>): void;
+  setData(series: SeriesConfig[]): void;
+  setTheme(theme: string | ThemeConfig): void;
+  addPoint(seriesId: string, point: DataPoint, opts?: { shift?: boolean; maxPoints?: number }): void;
+  on<T extends ChartEventType>(type: T, handler: ChartEventHandler<T>): () => void;
+  exportChart(format?: 'png' | 'svg' | 'jpeg'): Promise<Blob | string>;
+}
+
+export function createLitChart(host: HTMLElement, config: ChartConfig): LitChartRef {
+  let engine: Engine | null = new Engine({ ...config, container: host });
+  return {
+    get engine() { return engine; },
+    destroy() { engine?.destroy(); engine = null; },
+    update(cfg) { engine?.update(cfg); },
+    setData(s) { engine?.setData(s); },
+    setTheme(t) { engine?.setTheme(t); },
+    addPoint(sid, pt, opts) { engine?.addPoint(sid, pt, opts); },
+    on(t, h) { return engine?.on(t, h) ?? (() => {}); },
+    async exportChart(fmt = 'png') {
+      if (!engine) throw new Error('Destroyed');
+      return engine.export(fmt);
+    },
+  };
+}
+
+// ── Lit component source ──────────────────────────────────────────────────────
+
+/**
+ * Returns the Lit component TypeScript source.
+ * Drop it into your project as `uc-chart.ts`.
+ *
+ * The element:
+ * - `config` property (full ChartConfig)
+ * - `type` attribute (ChartType shorthand)
+ * - `theme` attribute
+ * - Fires `uc-ready` CustomEvent with `detail.engine`
+ * - Adopted by Shadow DOM — styles won't leak
+ * - Works as `<uc-chart>` in any HTML context
+ */
+export function getLitComponentSource(): string {
+  return `
+import { LitElement, html, css } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
+import { createLitChart, type LitChartRef } from '@risklab/charts/lit';
+import type { ChartConfig, ChartType, ThemeConfig } from '@risklab/charts';
+
+@customElement('uc-chart')
+export class UcChartElement extends LitElement {
+  static override styles = css\`
+    :host { display: block; width: 100%; }
+    #root { width: 100%; height: 100%; }
+  \`;
+
+  @property({ type: Object }) config?: ChartConfig;
+  @property({ type: String }) type?: ChartType;
+  @property({ type: String }) theme?: string;
+
+  @state() private _ref?: LitChartRef;
+  private _resizeObserver?: ResizeObserver;
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    this.updateComplete.then(() => this._mount());
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._resizeObserver?.disconnect();
+    this._ref?.destroy();
+  }
+
+  override updated(changed: Map<string, unknown>): void {
+    if (!this._ref) return;
+    if (changed.has('config') && this.config) {
+      this._ref.update(this.config);
+    }
+    if (changed.has('theme') && this.theme) {
+      this._ref.setTheme(this.theme);
+    }
+  }
+
+  private _mount(): void {
+    const root = this.shadowRoot?.getElementById('root') as HTMLElement;
+    if (!root || !this.config) return;
+
+    const config: ChartConfig = {
+      ...this.config,
+      ...(this.type ? { series: this.config.series.map(s => ({ ...s, type: this.type! })) } : {}),
+      ...(this.theme ? { theme: this.theme } : {}),
+    };
+
+    this._ref = createLitChart(root, config);
+
+    this._resizeObserver = new ResizeObserver(() => this._ref?.engine?.resize());
+    this._resizeObserver.observe(root);
+
+    this.dispatchEvent(new CustomEvent('uc-ready', {
+      detail: { engine: this._ref.engine, ref: this._ref },
+      bubbles: true,
+      composed: true,
+    }));
+  }
+
+  override render() {
+    return html\`<div id="root" style="width:100%;height:100%"></div>\`;
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap { 'uc-chart': UcChartElement; }
+}
+`.trim();
+}
