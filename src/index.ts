@@ -7,7 +7,7 @@
 export { Engine } from './core/Engine';
 export type { EngineInternalAPI, SyncableChart, EngineChartConfig } from './core/Engine';
 export { EventBus } from './core/EventBus';
-export { Registry } from './core/Registry';
+export { Registry, registry } from './core/Registry';
 export { DataPipeline, decimateLTTB, decimateMinMax } from './core/DataPipeline';
 export { SyncController, syncCharts } from './core/SyncController';
 export type { SyncOptions } from './core/SyncController';
@@ -105,6 +105,8 @@ export { renderHistogramChart } from './charts/HistogramChart';
 export { renderOHLCChart } from './charts/OHLCChart';
 export { renderParetoChart } from './charts/ParetoChart';
 export { renderLollipopChart } from './charts/LollipopChart';
+export { renderRangeAreaSeries } from './charts/RangeAreaChart';
+export type { RangeAreaConfig } from './charts/RangeAreaChart';
 export { renderTimelineChart } from './charts/TimelineChart';
 export { renderMapChart } from './charts/MapChart';
 export type { MapChartConfig } from './charts/MapChart';

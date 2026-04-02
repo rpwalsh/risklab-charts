@@ -1,61 +1,61 @@
 {
-    "name":  "@risklab/charts-angular",
-    "version":  "1.0.0",
-    "description":  "Angular adapter package for @risklab/charts.",
-    "main":  "dist/cjs/index.js",
-    "module":  "dist/esm/index.js",
-    "types":  "dist/types/index.d.ts",
-    "exports":  {
-                    ".":  {
-                              "types":  "./dist/types/index.d.ts",
-                              "import":  "./dist/esm/index.js",
-                              "require":  "./dist/cjs/index.js"
-                          }
-                },
-    "sideEffects":  false,
-    "files":  [
-                  "dist",
-                  "README.md",
-                  "LICENSE",
-                  "NOTICE",
-                  "LICENSE.txt"
-              ],
-    "scripts":  {
-                    "build":  "tsc -p tsconfig.build.json \u0026\u0026 tsc -p tsconfig.cjs.json",
-                    "clean":  "rimraf dist",
-                    "typecheck":  "tsc --noEmit",
-                    "prepublishOnly":  "npm run clean \u0026\u0026 npm run build"
-                },
-    "keywords":  [
-                     "charts",
-                     "angular",
-                     "dataviz",
-                     "risklab"
-                 ],
-    "author":  "RiskLab Contributors",
-    "license":  "Apache-2.0",
-    "repository":  {
-                       "type":  "git",
-                       "url":  "https://github.com/rpwalsh/risklab-charts",
-                       "directory":  "charts/angular"
-                   },
-    "homepage":  "https://walshtechgroup.com/risklab/",
-    "bugs":  {
-                 "url":  "https://github.com/rpwalsh/risklab-charts/issues"
-             },
-    "publishConfig":  {
-                          "access":  "public"
-                      },
-    "peerDependencies":  {
-                             "@risklab/charts":  "1.0.0",
-                             "@angular/core":  "\u003e=17.0.0"
-                         },
-    "devDependencies":  {
-                            "@risklab/charts":  "file:../..",
-                            "rimraf":  "^6.0.0",
-                            "typescript":  "^5.7.0"
-                        },
-    "engines":  {
-                    "node":  "\u003e=20.0.0"
-                }
+  "name": "@risklab/charts-angular",
+  "version": "1.0.0",
+  "description": "Angular adapter package for @risklab/charts.",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "LICENSE.txt"
+  ],
+  "scripts": {
+    "build": "rimraf dist && node ../../tools/ensure-root-build.mjs && node ../../tools/sync-chart-adapter.mjs angular && tsc -p tsconfig.build.json && tsc -p tsconfig.cjs.json",
+    "clean": "rimraf dist",
+    "typecheck": "node ../../tools/ensure-root-build.mjs && node ../../tools/sync-chart-adapter.mjs angular && tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "charts",
+    "angular",
+    "dataviz",
+    "risklab"
+  ],
+  "author": "RiskLab Contributors",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rpwalsh/risklab-charts",
+    "directory": "charts/angular"
+  },
+  "homepage": "https://walshtechgroup.com/risklab/",
+  "bugs": {
+    "url": "https://github.com/rpwalsh/risklab-charts/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@risklab/charts": "1.0.0",
+    "@angular/core": ">=17.0.0"
+  },
+  "devDependencies": {
+    "@risklab/charts": "file:../..",
+    "rimraf": "^6.0.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
 }

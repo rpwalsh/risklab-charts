@@ -26,6 +26,7 @@ import { renderHistogramChart } from './HistogramChart';
 import { renderOHLCChart } from './OHLCChart';
 import { renderParetoChart } from './ParetoChart';
 import { renderLollipopChart } from './LollipopChart';
+import { renderRangeAreaSeries } from './RangeAreaChart';
 import { renderTimelineChart } from './TimelineChart';
 import { renderMapChart } from './MapChart';
 import { renderCalendarHeatmap } from './CalendarHeatmap';
@@ -98,11 +99,18 @@ export function renderChart(
     switch (s.type) {
       // ─── Standard Chart Types ─────────────────────────────────────────
       case 'line':
+      case 'spline':
+      case 'stepLine':
+      case 'connectedScatter':
         renderLineSeries(renderer, s, state, theme, color);
         break;
       case 'area':
       case 'stackedArea':
         renderAreaSeries(renderer, s, state, theme, color);
+        break;
+      case 'rangeArea':
+      case 'arearange':
+        renderRangeAreaSeries(renderer, s, state, theme, color, config);
         break;
       case 'bar':
       case 'column':
@@ -319,9 +327,17 @@ export function renderChart(
         break;
       }
 
+      case 'progressRing':
+      case 'radialBar':
       case 'solidGauge':
       case 'solidgauge': {
-        const sgs2 = sorted.filter(ss => ss.type === 'solidGauge' || ss.type === 'solidgauge');
+        const sgs2 = sorted.filter(
+          (ss) =>
+            ss.type === 'progressRing' ||
+            ss.type === 'radialBar' ||
+            ss.type === 'solidGauge' ||
+            ss.type === 'solidgauge',
+        );
         if (s === sgs2[0]) renderSolidGauge(renderer, sgs2, state, theme, config);
         break;
       }
@@ -340,9 +356,8 @@ export function renderChart(
       }
 
       case 'columnrange':
-      case 'columnRange':
-      case 'arearange': {
-        const crs = sorted.filter(ss => ss.type === 'columnrange' || ss.type === 'columnRange' || ss.type === 'arearange');
+      case 'columnRange': {
+        const crs = sorted.filter(ss => ss.type === 'columnrange' || ss.type === 'columnRange');
         if (s === crs[0]) renderColumnRange(renderer, crs, state, theme, config);
         break;
       }

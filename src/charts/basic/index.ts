@@ -3,6 +3,8 @@ export type { BasicChartType } from './supportedTypes';
 
 export { renderLineSeries } from '../LineChart';
 export { renderAreaSeries } from '../AreaChart';
+export { renderRangeAreaSeries } from '../RangeAreaChart';
+export type { RangeAreaConfig } from '../RangeAreaChart';
 export { renderBarSeries } from '../BarChart';
 export { renderScatterSeries } from '../ScatterChart';
 export { renderBubbleSeries } from '../BubbleChart';

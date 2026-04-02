@@ -16,6 +16,7 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "jsx": "react-jsx",
     "outDir": "dist/esm",
     "declarationDir": "dist/types",
     "rootDir": "src"

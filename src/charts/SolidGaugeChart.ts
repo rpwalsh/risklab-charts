@@ -40,7 +40,7 @@ export function renderSolidGauge(
   theme: ThemeConfig,
   config?: Partial<ChartConfig>,
 ): void {
-  const sgCfg = (config as ChartConfig & { solidGauge?: SolidGaugeConfig })?.solidGauge ?? {};
+  const sgCfg = resolveSolidGaugeConfig(allSeries, config);
 
   const { chartArea } = state;
   const min        = sgCfg.min          ?? 0;
@@ -55,7 +55,9 @@ export function renderSolidGauge(
 
   const toRad = (d: number) => (d - 90) * (Math.PI / 180);
   const startRad = toRad(startDeg);
-  const totalArc = ((endDeg - startDeg + 360) % 360) * (Math.PI / 180);
+  const normalizedArcDeg = ((endDeg - startDeg) % 360 + 360) % 360;
+  const totalArcDeg = normalizedArcDeg === 0 && endDeg !== startDeg ? 360 : normalizedArcDeg;
+  const totalArc = totalArcDeg * (Math.PI / 180);
 
   const cx     = chartArea.x + chartArea.width / 2;
   const cy     = chartArea.y + chartArea.height / 2;
@@ -110,6 +112,43 @@ export function renderSolidGauge(
   }
 
   renderer.endGroup();
+}
+
+function resolveSolidGaugeConfig(
+  allSeries: ProcessedSeries[],
+  config?: Partial<ChartConfig>,
+): SolidGaugeConfig {
+  const solidGauge = config?.solidGauge ?? {};
+  const useProgressRing = allSeries.every((series) => series.type === 'progressRing');
+  const useRadialBar = allSeries.every((series) => series.type === 'radialBar');
+
+  if (useProgressRing) {
+    return {
+      startAngleDeg: 0,
+      endAngleDeg: 360,
+      innerRadiusFraction: 0.72,
+      showName: false,
+      showValue: true,
+      roundedEnds: true,
+      ...solidGauge,
+      ...(config?.progressRing ?? {}),
+    };
+  }
+
+  if (useRadialBar) {
+    return {
+      startAngleDeg: -90,
+      endAngleDeg: 270,
+      innerRadiusFraction: 0.35,
+      showName: true,
+      showValue: false,
+      roundedEnds: true,
+      ...solidGauge,
+      ...(config?.radialBar ?? {}),
+    };
+  }
+
+  return solidGauge;
 }
 
 function drawArcPath(

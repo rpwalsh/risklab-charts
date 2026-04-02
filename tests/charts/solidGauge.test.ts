@@ -97,4 +97,23 @@ describe('renderSolidGauge', () => {
     )).not.toThrow();
     expect(r.paths).toBe(2);
   });
+
+  it('uses full-circle defaults for progressRing', () => {
+    const r = makeMockRenderer();
+    const ringSeries = [{ id: 'p1', name: 'Completion', type: 'progressRing', processedData: [{ yNum: 64 }] }] as any;
+    renderSolidGauge(r as unknown as BaseRenderer, ringSeries, makeState(), defaultTheme as ThemeConfig, {} as any);
+    expect(r.paths).toBe(2);
+    expect(r.texts).toBe(1);
+  });
+
+  it('uses multi-band defaults for radialBar', () => {
+    const r = makeMockRenderer();
+    const radialSeries = [
+      { id: 'r1', name: 'North', type: 'radialBar', processedData: [{ yNum: 48 }] },
+      { id: 'r2', name: 'South', type: 'radialBar', processedData: [{ yNum: 71 }] },
+    ] as any;
+    renderSolidGauge(r as unknown as BaseRenderer, radialSeries, makeState(), defaultTheme as ThemeConfig, {} as any);
+    expect(r.paths).toBe(4);
+    expect(r.texts).toBe(2);
+  });
 });

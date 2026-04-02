@@ -17,15 +17,25 @@ function makeMockScale() {
 
 function makeMockRenderer() {
   let paths = 0, circles = 0;
+  const pathValues: string[] = [];
+  const linePointSets: Array<Array<{ x: number; y: number }>> = [];
+  const smoothFlags: boolean[] = [];
   return {
     get paths() { return paths; },
     get circles() { return circles; },
+    get pathValues() { return pathValues; },
+    get linePointSets() { return linePointSets; },
+    get smoothFlags() { return smoothFlags; },
     clear: () => {}, destroy: () => {}, setSize: () => {},
     drawLine: () => {}, drawText: () => {}, drawRect: () => {}, drawArc: () => {},
-    drawPolygon: () => {}, drawPath: () => { paths++; },
+    drawPolygon: () => {}, drawPath: (d: string) => { paths++; pathValues.push(d); },
     drawCircle: () => { circles++; },
     beginGroup: () => {}, endGroup: () => {},
-    buildLinePath: (_pts: unknown) => 'M0,0L100,100',
+    buildLinePath: (pts: Array<{ x: number; y: number }>, smooth = false) => {
+      linePointSets.push(pts);
+      smoothFlags.push(smooth);
+      return pts.map((pt, index) => `${index === 0 ? 'M' : 'L'}${pt.x},${pt.y}`).join('');
+    },
     defineLinearGradient: () => {},
   };
 }
@@ -91,5 +101,29 @@ describe('renderLineSeries', () => {
   it('handles a single data point without throwing', () => {
     const r = makeMockRenderer();
     expect(() => renderLineSeries(r as unknown as BaseRenderer, makeSeries([{ x: 5, y: 5 }]), makeState(), defaultTheme as ThemeConfig, '#6366f1')).not.toThrow();
+  });
+
+  it('renders stepLine with horizontal-then-vertical segments', () => {
+    const r = makeMockRenderer();
+    const stepSeries = { ...makeSeries([{ x: 0, y: 10 }, { x: 1, y: 20 }]), type: 'stepLine' };
+    renderLineSeries(r as unknown as BaseRenderer, stepSeries as any, makeState(), defaultTheme as ThemeConfig, '#6366f1');
+    expect(r.pathValues[0]).toBe('M0,60L6,60L6,120');
+    expect(r.linePointSets).toHaveLength(0);
+  });
+
+  it('keeps connectedScatter in author-provided point order', () => {
+    const r = makeMockRenderer();
+    const scatterSeries = {
+      ...makeSeries([{ x: 2, y: 15 }, { x: 0, y: 10 }, { x: 1, y: 20 }]),
+      type: 'connectedScatter',
+      processedData: [
+        { x: 0, y: 10, xNum: 0, yNum: 10 },
+        { x: 1, y: 20, xNum: 1, yNum: 20 },
+        { x: 2, y: 15, xNum: 2, yNum: 15 },
+      ],
+    };
+    renderLineSeries(r as unknown as BaseRenderer, scatterSeries as any, makeState(), defaultTheme as ThemeConfig, '#6366f1');
+    expect(r.linePointSets[0]?.map((point) => point.x)).toEqual([12, 0, 6]);
+    expect(r.smoothFlags[0]).toBe(false);
   });
 });

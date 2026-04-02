@@ -3,6 +3,10 @@
 RiskLab Charts is a typed chart package family for analytical products,
 dashboards, internal tools, and data-heavy application shells.
 
+If you are building a full analytical application shell, pair these packages
+with `@risklab/workbench` from the RiskLab UI repo. Charts are one panel type
+in that workbench model, not the whole product.
+
 This repo ships:
 
 - `@risklab/charts`: the chart engine, chart families, themes, plugins, and
@@ -16,6 +20,7 @@ This repo ships:
 | Use case | Install | Notes |
 | --- | --- | --- |
 | React charts | `npm install @risklab/charts @risklab/charts-react` | Recommended evaluation path |
+| React analytical workbench | `npm install @risklab/workbench @risklab/charts @risklab/charts-react` | Recommended full app path when you need shell, layout, and coordinated state |
 | Vanilla or Web Components charts | `npm install @risklab/charts @risklab/charts-vanilla` | Best path for static sites and mixed stacks |
 | Vue, Svelte, Angular, Lit, Solid | install `@risklab/charts` plus the matching `@risklab/charts-*` adapter | Keep the framework choice explicit during review |
 
@@ -116,6 +121,8 @@ forcing a wrapper package for every stack.
 - `@risklab/charts/stylex` stays available for actual StyleX users.
 - There is no dedicated Fluent wrapper today. The current recommendation is a
   token bridge, not another adapter layer.
+- Framework adapter packages are expected to ship package-owned implementation
+  source, not just thin re-export wrappers.
 
 ## Trust and release posture
 

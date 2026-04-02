@@ -284,7 +284,10 @@ export interface MarkerConfig {
 export type ChartType =
   // ── Standard / Basic ────────────────────────────────────────────────────
   | 'line'
+  | 'spline'
+  | 'stepLine'
   | 'area'
+  | 'rangeArea'
   | 'bar'
   | 'column'
   | 'stackedBar'
@@ -293,6 +296,7 @@ export type ChartType =
   | 'pie'
   | 'donut'
   | 'scatter'
+  | 'connectedScatter'
   | 'bubble'
   | 'radar'
   | 'sankey'
@@ -358,6 +362,8 @@ export type ChartType =
   | 'stream'
   | 'xrange'
   | 'x-range'
+  | 'progressRing'
+  | 'radialBar'
   | 'solidGauge'
   | 'solidgauge'
   | 'tilemap'
@@ -1248,6 +1254,10 @@ export interface ChartConfig {
   item?: import('../charts/ItemChart').ItemChartConfig;
   /** Solid gauge config */
   solidGauge?: import('../charts/SolidGaugeChart').SolidGaugeConfig;
+  /** Progress ring config */
+  progressRing?: import('../charts/SolidGaugeChart').SolidGaugeConfig;
+  /** Radial bar config */
+  radialBar?: import('../charts/SolidGaugeChart').SolidGaugeConfig;
   /** Tilemap config */
   tilemap?: import('../charts/TilemapChart').TilemapConfig;
   /** Tree graph config */
@@ -1260,6 +1270,8 @@ export interface ChartConfig {
   xrange?: import('../charts/XRangeChart').XRangeConfig;
   /** Column range chart config */
   columnRange?: import('../charts/ColumnRangeChart').ColumnRangeConfig;
+  /** Range area chart config */
+  rangeArea?: import('../charts/RangeAreaChart').RangeAreaConfig;
   /** Dumbbell chart config */
   dumbbell?: import('../charts/ColumnRangeChart').DumbbellConfig;
   /** Bell curve chart config */

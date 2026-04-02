@@ -8,6 +8,7 @@ install.
 | If you are building | Install |
 | --- | --- |
 | React charts | `npm install @risklab/charts @risklab/charts-react` |
+| React analytical workbench | `npm install @risklab/workbench @risklab/charts @risklab/charts-react` |
 | Vanilla or Web Components charts | `npm install @risklab/charts @risklab/charts-vanilla` |
 | Vue, Svelte, Angular, Lit, Solid | install `@risklab/charts` plus the matching `@risklab/charts-*` adapter |
 
@@ -42,6 +43,10 @@ export function ThroughputChart() {
 ```
 
 Reference file: [examples/quickstart-react.tsx](../examples/quickstart-react.tsx)
+
+If you are building a full analytical application rather than a single chart
+surface, pair this repo with `@risklab/workbench` for shell, panel layout,
+query/filter state, and inspectors.
 
 ## Vanilla quick start
 

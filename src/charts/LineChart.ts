@@ -35,7 +35,9 @@ export function renderLineSeries(
   const yScale = state.scales.get(series.yAxisId ?? 'y0');
   if (!xScale || !yScale) return;
 
-  const data = series.processedData ?? (series.data as ProcessedDataPoint[]);
+  const data = series.type === 'connectedScatter'
+    ? (series.data as ProcessedDataPoint[])
+    : (series.processedData ?? (series.data as ProcessedDataPoint[]));
   if (data.length === 0) return;
 
   // Map data to pixel coordinates
@@ -43,14 +45,14 @@ export function renderLineSeries(
     .filter((d) => d.x != null && d.y != null)
     .map((d) => ({
       x: xScale.convert(d.x),
-      y: yScale.convert(d.y1 ?? d.yNum),
+      y: yScale.convert(resolveLineValue(d)),
     }));
 
   if (points.length === 0) return;
 
   // Draw line
   const lineWidth = series.lineWidth ?? 2;
-  const path = renderer.buildLinePath(points, true);
+  const path = buildLineVariantPath(renderer, points, series.type);
 
   renderer.drawPath(path, {
     stroke: color,
@@ -76,4 +78,36 @@ export function renderLineSeries(
       });
     }
   }
+}
+
+function buildLineVariantPath(
+  renderer: BaseRenderer,
+  points: Array<{ x: number; y: number }>,
+  type: ProcessedSeries['type'],
+): string {
+  if (type === 'stepLine') {
+    return buildStepLinePath(points);
+  }
+
+  const smooth = type === 'spline' || type === 'line';
+  return renderer.buildLinePath(points, smooth);
+}
+
+function buildStepLinePath(points: Array<{ x: number; y: number }>): string {
+  if (points.length === 0) return '';
+  if (points.length === 1) return `M${points[0]!.x},${points[0]!.y}`;
+
+  let path = `M${points[0]!.x},${points[0]!.y}`;
+
+  for (let i = 1; i < points.length; i++) {
+    const previous = points[i - 1]!;
+    const current = points[i]!;
+    path += `L${current.x},${previous.y}L${current.x},${current.y}`;
+  }
+
+  return path;
+}
+
+function resolveLineValue(point: ProcessedDataPoint): number {
+  return point.y1 ?? point.yNum ?? Number(point.y);
 }
