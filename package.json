@@ -1,329 +1,324 @@
 {
-    "name":  "@risklab/charts",
-    "version":  "1.0.0",
-    "private":  false,
-    "description":  "@risklab/charts - Typed analytical charting engine with basic and advanced chart families for serious analytical software.",
-    "workspaces":  [
-                       "charts/react",
-                       "charts/vanilla",
-                       "charts/vue",
-                       "charts/svelte",
-                       "charts/angular",
-                       "charts/lit",
-                       "charts/solid"
-                   ],
-    "main":  "dist/cjs/index.js",
-    "module":  "dist/esm/index.js",
-    "types":  "dist/types/index.d.ts",
-    "exports":  {
-                    ".":  {
-                              "types":  "./dist/types/index.d.ts",
-                              "import":  "./dist/esm/index.js",
-                              "require":  "./dist/cjs/index.js"
-                          },
-                    "./react":  {
-                                    "types":  "./dist/types/adapters/react/index.d.ts",
-                                    "import":  "./dist/esm/adapters/react/index.js",
-                                    "require":  "./dist/cjs/adapters/react/index.js"
-                                },
-                    "./mui":  {
-                                  "types":  "./dist/types/adapters/mui/index.d.ts",
-                                  "import":  "./dist/esm/adapters/mui/index.js",
-                                  "require":  "./dist/cjs/adapters/mui/index.js"
-                              },
-                    "./stylex":  {
-                                     "types":  "./dist/types/adapters/stylex/index.d.ts",
-                                     "import":  "./dist/esm/adapters/stylex/index.js",
-                                     "require":  "./dist/cjs/adapters/stylex/index.js"
-                                 },
-                    "./basic":  {
-                                    "types":  "./dist/types/charts/basic/index.d.ts",
-                                    "import":  "./dist/esm/charts/basic/index.js",
-                                    "require":  "./dist/cjs/charts/basic/index.js"
-                                },
-                    "./palettes":  {
-                                       "types":  "./dist/types/themes/palettes.d.ts",
-                                       "import":  "./dist/esm/themes/palettes.js",
-                                       "require":  "./dist/cjs/themes/palettes.js"
-                                   },
-                    "./css-vars":  {
-                                       "types":  "./dist/types/themes/cssVars.d.ts",
-                                       "import":  "./dist/esm/themes/cssVars.js",
-                                       "require":  "./dist/cjs/themes/cssVars.js"
-                                   },
-                    "./advanced":  {
-                                       "types":  "./dist/types/charts/advanced/index.d.ts",
-                                       "import":  "./dist/esm/charts/advanced/index.js",
-                                       "require":  "./dist/cjs/charts/advanced/index.js"
-                                   },
-                    "./3d":  {
-                                 "types":  "./dist/types/experimental/index.d.ts",
-                                 "import":  "./dist/esm/experimental/index.js",
-                                 "require":  "./dist/cjs/experimental/index.js"
-                             },
-                    "./experimental":  {
-                                           "types":  "./dist/types/experimental/index.d.ts",
-                                           "import":  "./dist/esm/experimental/index.js",
-                                           "require":  "./dist/cjs/experimental/index.js"
-                                       },
-                    "./themes/default":  {
-                                             "types":  "./dist/types/themes/defaultTheme.d.ts",
-                                             "import":  "./dist/esm/themes/defaultTheme.js",
-                                             "require":  "./dist/cjs/themes/defaultTheme.js"
-                                         },
-                    "./themes/dark":  {
-                                          "types":  "./dist/types/themes/darkTheme.d.ts",
-                                          "import":  "./dist/esm/themes/darkTheme.js",
-                                          "require":  "./dist/cjs/themes/darkTheme.js"
-                                      },
-                    "./themes/engine":  {
-                                            "types":  "./dist/types/themes/ThemeEngine.d.ts",
-                                            "import":  "./dist/esm/themes/ThemeEngine.js",
-                                            "require":  "./dist/cjs/themes/ThemeEngine.js"
-                                        },
-                    "./plugins/export":  {
-                                             "types":  "./dist/types/plugins/ExportPlugin.d.ts",
-                                             "import":  "./dist/esm/plugins/ExportPlugin.js",
-                                             "require":  "./dist/cjs/plugins/ExportPlugin.js"
-                                         },
-                    "./plugins/data-labels":  {
-                                                  "types":  "./dist/types/plugins/DataLabelsPlugin.d.ts",
-                                                  "import":  "./dist/esm/plugins/DataLabelsPlugin.js",
-                                                  "require":  "./dist/cjs/plugins/DataLabelsPlugin.js"
-                                              },
-                    "./plugins/statistics":  {
-                                                 "types":  "./dist/types/plugins/StatisticsPlugin.d.ts",
-                                                 "import":  "./dist/esm/plugins/StatisticsPlugin.js",
-                                                 "require":  "./dist/cjs/plugins/StatisticsPlugin.js"
-                                             },
-                    "./plugins/data-table":  {
-                                                 "types":  "./dist/types/plugins/DataTablePlugin.d.ts",
-                                                 "import":  "./dist/esm/plugins/DataTablePlugin.js",
-                                                 "require":  "./dist/cjs/plugins/DataTablePlugin.js"
-                                             },
-                    "./plugins/responsive":  {
-                                                 "types":  "./dist/types/plugins/ResponsivePlugin.d.ts",
-                                                 "import":  "./dist/esm/plugins/ResponsivePlugin.js",
-                                                 "require":  "./dist/cjs/plugins/ResponsivePlugin.js"
-                                             },
-                    "./plugins/print":  {
-                                            "types":  "./dist/types/plugins/PrintPlugin.d.ts",
-                                            "import":  "./dist/esm/plugins/PrintPlugin.js",
-                                            "require":  "./dist/cjs/plugins/PrintPlugin.js"
-                                        },
-                    "./vanilla":  {
-                                      "types":  "./dist/types/adapters/vanilla/index.d.ts",
-                                      "import":  "./dist/esm/adapters/vanilla/index.js",
-                                      "require":  "./dist/cjs/adapters/vanilla/index.js"
-                                  },
-                    "./svelte":  {
-                                     "types":  "./dist/types/adapters/svelte/index.d.ts",
-                                     "import":  "./dist/esm/adapters/svelte/index.js",
-                                     "require":  "./dist/cjs/adapters/svelte/index.js"
-                                 },
-                    "./angular":  {
-                                      "types":  "./dist/types/adapters/angular/index.d.ts",
-                                      "import":  "./dist/esm/adapters/angular/index.js",
-                                      "require":  "./dist/cjs/adapters/angular/index.js"
-                                  },
-                    "./lit":  {
-                                  "types":  "./dist/types/adapters/lit/index.d.ts",
-                                  "import":  "./dist/esm/adapters/lit/index.js",
-                                  "require":  "./dist/cjs/adapters/lit/index.js"
-                              },
-                    "./solid":  {
-                                    "types":  "./dist/types/adapters/solid/index.d.ts",
-                                    "import":  "./dist/esm/adapters/solid/index.js",
-                                    "require":  "./dist/cjs/adapters/solid/index.js"
-                                },
-                    "./vue":  {
-                                  "types":  "./dist/types/adapters/vue/index.d.ts",
-                                  "import":  "./dist/esm/adapters/vue/index.js",
-                                  "require":  "./dist/cjs/adapters/vue/index.js"
-                              },
-                    "./webcomponent":  {
-                                           "types":  "./dist/types/adapters/webcomponent/RiskLabElement.d.ts",
-                                           "import":  "./dist/esm/adapters/webcomponent/RiskLabElement.js",
-                                           "require":  "./dist/cjs/adapters/webcomponent/RiskLabElement.js"
-                                       },
-                    "./data":  {
-                                   "types":  "./dist/types/data/connectors.d.ts",
-                                   "import":  "./dist/esm/data/connectors.js",
-                                   "require":  "./dist/cjs/data/connectors.js"
-                               },
-                    "./boost":  {
-                                    "types":  "./dist/types/boost/index.d.ts",
-                                    "import":  "./dist/esm/boost/index.js",
-                                    "require":  "./dist/cjs/boost/index.js"
-                                },
-                    "./sdk":  {
-                                  "types":  "./dist/types/sdk/index.d.ts",
-                                  "import":  "./dist/esm/sdk/index.js",
-                                  "require":  "./dist/cjs/sdk/index.js"
-                              },
-                    "./utils/datetime":  {
-                                             "types":  "./dist/types/utils/datetime.d.ts",
-                                             "import":  "./dist/esm/utils/datetime.js",
-                                             "require":  "./dist/cjs/utils/datetime.js"
-                                         },
-                    "./utils/math":  {
-                                         "types":  "./dist/types/utils/math.d.ts",
-                                         "import":  "./dist/esm/utils/math.js",
-                                         "require":  "./dist/cjs/utils/math.js"
-                                     },
-                    "./utils/format":  {
-                                           "types":  "./dist/types/utils/format.d.ts",
-                                           "import":  "./dist/esm/utils/format.js",
-                                           "require":  "./dist/cjs/utils/format.js"
-                                       }
-                },
-    "sideEffects":  false,
-    "files":  [
-                  "dist",
-                  "README.md",
-                  "LICENSE",
-                  "CHANGELOG.md",
-                  "SECURITY.md",
-                  "NOTICE",
-                  "LICENSE.txt"
-              ],
-    "funding":  {
-                    "type":  "github",
-                    "url":  "https://github.com/sponsors/rpwalsh"
-                },
-    "scripts":  {
-                    "build":  "tsc -p tsconfig.build.json \u0026\u0026 tsc -p tsconfig.cjs.json",
-                    "dev":  "tsc -p tsconfig.build.json --watch",
-                    "lint":  "eslint src charts tests --ext .ts,.tsx",
-                    "test":  "vitest run",
-                    "test:watch":  "vitest",
-                    "test:coverage":  "vitest run --coverage",
-                    "clean":  "rimraf dist",
-                    "prepublishOnly":  "npm run clean \u0026\u0026 npm run build",
-                    "typecheck":  "tsc --noEmit",
-                    "size":  "node -e \"const fs=require(\u0027fs\u0027),p=f=\u003efs.statSync(f).size;console.log(\u0027ESM entry:\u0027,Math.round(p(\u0027dist/esm/index.js\u0027)/1024)+\u0027kB\u0027);console.log(\u0027CJS entry:\u0027,Math.round(p(\u0027dist/cjs/index.js\u0027)/1024)+\u0027kB\u0027)\"",
-                    "validate":  "npm run clean \u0026\u0026 npm run build \u0026\u0026 npm run typecheck \u0026\u0026 npm run test \u0026\u0026 npm run size",
-                    "build:charts-react":  "npm run build --workspace=charts/react",
-                    "build:charts-vanilla":  "npm run build --workspace=charts/vanilla",
-                    "build:charts-vue":  "npm run build --workspace=charts/vue",
-                    "build:charts-svelte":  "npm run build --workspace=charts/svelte",
-                    "build:charts-angular":  "npm run build --workspace=charts/angular",
-                    "build:charts-lit":  "npm run build --workspace=charts/lit",
-                    "build:charts-solid":  "npm run build --workspace=charts/solid",
-                    "build:all":  "npm run build \u0026\u0026 npm run build --workspace=charts/react \u0026\u0026 npm run build --workspace=charts/vanilla \u0026\u0026 npm run build --workspace=charts/vue \u0026\u0026 npm run build --workspace=charts/svelte \u0026\u0026 npm run build --workspace=charts/angular \u0026\u0026 npm run build --workspace=charts/lit \u0026\u0026 npm run build --workspace=charts/solid",
-                    "pack:all":  "npm pack --dry-run \u0026\u0026 npm pack --dry-run --workspaces",
-                    "smoke:install":  "node ./tools/smoke-install.mjs",
-                    "release:check":  "npm run validate \u0026\u0026 npm run build:all \u0026\u0026 npm run pack:all \u0026\u0026 npm run smoke:install",
-                    "test:all":  "npm run test",
-                    "validate:all":  "npm run validate \u0026\u0026 npm run build --workspace=charts/react \u0026\u0026 npm run build --workspace=charts/vanilla \u0026\u0026 npm run build --workspace=charts/vue \u0026\u0026 npm run build --workspace=charts/svelte \u0026\u0026 npm run build --workspace=charts/angular \u0026\u0026 npm run build --workspace=charts/lit \u0026\u0026 npm run build --workspace=charts/solid"
-                },
-    "keywords":  [
-                     "charts",
-                     "graphs",
-                     "visualization",
-                     "react",
-                     "svg",
-                     "canvas",
-                     "sankey",
-                     "line-chart",
-                     "bar-chart",
-                     "stacked-chart",
-                     "multi-axis",
-                     "timeline",
-                     "animation",
-                     "open-source",
-                     "data-visualization",
-                     "dataviz",
-                     "analytical-software",
-                     "dashboard",
-                     "workbench",
-                     "mui",
-                     "material-ui",
-                     "stylex",
-                     "xstyle",
-                     "css-in-js",
-                     "smith-chart",
-                     "polar-chart",
-                     "contour",
-                     "oscilloscope",
-                     "spectrum-analyzer",
-                     "engineering",
-                     "aviation",
-                     "color-palettes",
-                     "dark-mode",
-                     "risklab"
-                 ],
-    "author":  "RiskLab Contributors",
-    "license":  "Apache-2.0",
-    "repository":  {
-                       "type":  "git",
-                       "url":  "https://github.com/rpwalsh/risklab-charts",
-                       "directory":  "."
-                   },
-    "homepage":  "https://walshtechgroup.com/risklab/",
-    "bugs":  {
-                 "url":  "https://github.com/rpwalsh/risklab-charts/issues"
-             },
-    "publishConfig":  {
-                          "access":  "public"
-                      },
-    "peerDependencies":  {
-                             "react":  "\u003e=18.0.0",
-                             "react-dom":  "\u003e=18.0.0",
-                             "solid-js":  "\u003e=1.8.0",
-                             "vue":  "\u003e=3.0.0",
-                             "svelte":  "\u003e=4.0.0",
-                             "@angular/core":  "\u003e=17.0.0",
-                             "lit":  "\u003e=3.0.0"
-                         },
-    "peerDependenciesMeta":  {
-                                 "react":  {
-                                               "optional":  true
-                                           },
-                                 "react-dom":  {
-                                                   "optional":  true
-                                               },
-                                 "solid-js":  {
-                                                  "optional":  true
-                                              },
-                                 "vue":  {
-                                             "optional":  true
-                                         },
-                                 "svelte":  {
-                                                "optional":  true
-                                            },
-                                 "@angular/core":  {
-                                                       "optional":  true
-                                                   },
-                                 "lit":  {
-                                             "optional":  true
-                                         }
-                             },
-    "devDependencies":  {
-                            "@eslint/js":  "^9.0.0",
-                            "@storybook/addon-a11y":  "^8.5.0",
-                            "@storybook/addon-essentials":  "^8.5.0",
-                            "@storybook/html":  "^8.5.0",
-                            "@storybook/html-vite":  "^8.5.0",
-                            "@types/node":  "^25.5.0",
-                            "@types/react":  "^19.0.0",
-                            "@types/react-dom":  "^19.0.0",
-                            "@vitest/coverage-v8":  "^3.0.0",
-                            "eslint":  "^9.0.0",
-                            "eslint-plugin-react-hooks":  "^7.0.1",
-                            "jsdom":  "^29.0.0",
-                            "prettier":  "^3.4.0",
-                            "react":  "^19.0.0",
-                            "react-dom":  "^19.0.0",
-                            "rimraf":  "^6.0.0",
-                            "storybook":  "^8.5.0",
-                            "typedoc":  "^0.28.18",
-                            "typescript":  "^5.7.0",
-                            "typescript-eslint":  "^8.0.0",
-                            "vite":  "^6.4.1",
-                            "vitest":  "^3.0.0"
-                        },
-    "engines":  {
-                    "node":  "\u003e=20.0.0"
-                }
+    "name": "@risklab/charts",
+    "version": "1.0.0",
+    "private": false,
+    "description": "@risklab/charts - Typed analytical charting engine with basic and advanced chart families for serious analytical software.",
+    "workspaces": [
+        "charts/react",
+        "charts/vanilla",
+        "charts/vue",
+        "charts/svelte",
+        "charts/angular",
+        "charts/lit",
+        "charts/solid"
+    ],
+    "main": "dist/cjs/index.js",
+    "module": "dist/esm/index.js",
+    "types": "dist/types/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/types/index.d.ts",
+            "import": "./dist/esm/index.js",
+            "require": "./dist/cjs/index.js"
+        },
+        "./react": {
+            "types": "./dist/types/adapters/react/index.d.ts",
+            "import": "./dist/esm/adapters/react/index.js",
+            "require": "./dist/cjs/adapters/react/index.js"
+        },
+        "./mui": {
+            "types": "./dist/types/adapters/mui/index.d.ts",
+            "import": "./dist/esm/adapters/mui/index.js",
+            "require": "./dist/cjs/adapters/mui/index.js"
+        },
+        "./stylex": {
+            "types": "./dist/types/adapters/stylex/index.d.ts",
+            "import": "./dist/esm/adapters/stylex/index.js",
+            "require": "./dist/cjs/adapters/stylex/index.js"
+        },
+        "./basic": {
+            "types": "./dist/types/charts/basic/index.d.ts",
+            "import": "./dist/esm/charts/basic/index.js",
+            "require": "./dist/cjs/charts/basic/index.js"
+        },
+        "./palettes": {
+            "types": "./dist/types/themes/palettes.d.ts",
+            "import": "./dist/esm/themes/palettes.js",
+            "require": "./dist/cjs/themes/palettes.js"
+        },
+        "./css-vars": {
+            "types": "./dist/types/themes/cssVars.d.ts",
+            "import": "./dist/esm/themes/cssVars.js",
+            "require": "./dist/cjs/themes/cssVars.js"
+        },
+        "./advanced": {
+            "types": "./dist/types/charts/advanced/index.d.ts",
+            "import": "./dist/esm/charts/advanced/index.js",
+            "require": "./dist/cjs/charts/advanced/index.js"
+        },
+        "./3d": {
+            "types": "./dist/types/experimental/index.d.ts",
+            "import": "./dist/esm/experimental/index.js",
+            "require": "./dist/cjs/experimental/index.js"
+        },
+        "./experimental": {
+            "types": "./dist/types/experimental/index.d.ts",
+            "import": "./dist/esm/experimental/index.js",
+            "require": "./dist/cjs/experimental/index.js"
+        },
+        "./themes/default": {
+            "types": "./dist/types/themes/defaultTheme.d.ts",
+            "import": "./dist/esm/themes/defaultTheme.js",
+            "require": "./dist/cjs/themes/defaultTheme.js"
+        },
+        "./themes/dark": {
+            "types": "./dist/types/themes/darkTheme.d.ts",
+            "import": "./dist/esm/themes/darkTheme.js",
+            "require": "./dist/cjs/themes/darkTheme.js"
+        },
+        "./themes/engine": {
+            "types": "./dist/types/themes/ThemeEngine.d.ts",
+            "import": "./dist/esm/themes/ThemeEngine.js",
+            "require": "./dist/cjs/themes/ThemeEngine.js"
+        },
+        "./plugins/export": {
+            "types": "./dist/types/plugins/ExportPlugin.d.ts",
+            "import": "./dist/esm/plugins/ExportPlugin.js",
+            "require": "./dist/cjs/plugins/ExportPlugin.js"
+        },
+        "./plugins/data-labels": {
+            "types": "./dist/types/plugins/DataLabelsPlugin.d.ts",
+            "import": "./dist/esm/plugins/DataLabelsPlugin.js",
+            "require": "./dist/cjs/plugins/DataLabelsPlugin.js"
+        },
+        "./plugins/statistics": {
+            "types": "./dist/types/plugins/StatisticsPlugin.d.ts",
+            "import": "./dist/esm/plugins/StatisticsPlugin.js",
+            "require": "./dist/cjs/plugins/StatisticsPlugin.js"
+        },
+        "./plugins/data-table": {
+            "types": "./dist/types/plugins/DataTablePlugin.d.ts",
+            "import": "./dist/esm/plugins/DataTablePlugin.js",
+            "require": "./dist/cjs/plugins/DataTablePlugin.js"
+        },
+        "./plugins/responsive": {
+            "types": "./dist/types/plugins/ResponsivePlugin.d.ts",
+            "import": "./dist/esm/plugins/ResponsivePlugin.js",
+            "require": "./dist/cjs/plugins/ResponsivePlugin.js"
+        },
+        "./plugins/print": {
+            "types": "./dist/types/plugins/PrintPlugin.d.ts",
+            "import": "./dist/esm/plugins/PrintPlugin.js",
+            "require": "./dist/cjs/plugins/PrintPlugin.js"
+        },
+        "./vanilla": {
+            "types": "./dist/types/adapters/vanilla/index.d.ts",
+            "import": "./dist/esm/adapters/vanilla/index.js",
+            "require": "./dist/cjs/adapters/vanilla/index.js"
+        },
+        "./svelte": {
+            "types": "./dist/types/adapters/svelte/index.d.ts",
+            "import": "./dist/esm/adapters/svelte/index.js",
+            "require": "./dist/cjs/adapters/svelte/index.js"
+        },
+        "./angular": {
+            "types": "./dist/types/adapters/angular/index.d.ts",
+            "import": "./dist/esm/adapters/angular/index.js",
+            "require": "./dist/cjs/adapters/angular/index.js"
+        },
+        "./lit": {
+            "types": "./dist/types/adapters/lit/index.d.ts",
+            "import": "./dist/esm/adapters/lit/index.js",
+            "require": "./dist/cjs/adapters/lit/index.js"
+        },
+        "./solid": {
+            "types": "./dist/types/adapters/solid/index.d.ts",
+            "import": "./dist/esm/adapters/solid/index.js",
+            "require": "./dist/cjs/adapters/solid/index.js"
+        },
+        "./vue": {
+            "types": "./dist/types/adapters/vue/index.d.ts",
+            "import": "./dist/esm/adapters/vue/index.js",
+            "require": "./dist/cjs/adapters/vue/index.js"
+        },
+        "./webcomponent": {
+            "types": "./dist/types/adapters/webcomponent/RiskLabElement.d.ts",
+            "import": "./dist/esm/adapters/webcomponent/RiskLabElement.js",
+            "require": "./dist/cjs/adapters/webcomponent/RiskLabElement.js"
+        },
+        "./data": {
+            "types": "./dist/types/data/connectors.d.ts",
+            "import": "./dist/esm/data/connectors.js",
+            "require": "./dist/cjs/data/connectors.js"
+        },
+        "./boost": {
+            "types": "./dist/types/boost/index.d.ts",
+            "import": "./dist/esm/boost/index.js",
+            "require": "./dist/cjs/boost/index.js"
+        },
+        "./sdk": {
+            "types": "./dist/types/sdk/index.d.ts",
+            "import": "./dist/esm/sdk/index.js",
+            "require": "./dist/cjs/sdk/index.js"
+        },
+        "./utils/datetime": {
+            "types": "./dist/types/utils/datetime.d.ts",
+            "import": "./dist/esm/utils/datetime.js",
+            "require": "./dist/cjs/utils/datetime.js"
+        },
+        "./utils/math": {
+            "types": "./dist/types/utils/math.d.ts",
+            "import": "./dist/esm/utils/math.js",
+            "require": "./dist/cjs/utils/math.js"
+        },
+        "./utils/format": {
+            "types": "./dist/types/utils/format.d.ts",
+            "import": "./dist/esm/utils/format.js",
+            "require": "./dist/cjs/utils/format.js"
+        }
+    },
+    "sideEffects": false,
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE",
+        "CHANGELOG.md",
+        "SECURITY.md",
+        "NOTICE",
+        "LICENSE.txt"
+    ],
+    "funding": {
+        "type": "github",
+        "url": "https://github.com/sponsors/rpwalsh"
+    },
+    "scripts": {
+        "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.cjs.json",
+        "dev": "tsc -p tsconfig.build.json --watch",
+        "lint": "eslint src charts tests --ext .ts,.tsx",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
+        "clean": "rimraf dist",
+        "prepublishOnly": "npm run clean && npm run build",
+        "typecheck": "tsc --noEmit",
+        "size": "node -e \"const fs=require('fs'),p=f=>fs.statSync(f).size;console.log('ESM entry:',Math.round(p('dist/esm/index.js')/1024)+'kB');console.log('CJS entry:',Math.round(p('dist/cjs/index.js')/1024)+'kB')\"",
+        "validate": "npm run clean && npm run build && npm run typecheck && npm run test && npm run size",
+        "build:charts-react": "npm run build --workspace=charts/react",
+        "build:charts-vanilla": "npm run build --workspace=charts/vanilla",
+        "build:charts-vue": "npm run build --workspace=charts/vue",
+        "build:charts-svelte": "npm run build --workspace=charts/svelte",
+        "build:charts-angular": "npm run build --workspace=charts/angular",
+        "build:charts-lit": "npm run build --workspace=charts/lit",
+        "build:charts-solid": "npm run build --workspace=charts/solid",
+        "build:all": "npm run build && npm run build --workspace=charts/react && npm run build --workspace=charts/vanilla && npm run build --workspace=charts/vue && npm run build --workspace=charts/svelte && npm run build --workspace=charts/angular && npm run build --workspace=charts/lit && npm run build --workspace=charts/solid",
+        "pack:all": "npm pack --dry-run && npm pack --dry-run --workspaces",
+        "smoke:install": "node ./tools/smoke-install.mjs",
+        "release:check": "npm run validate && npm run build:all && npm run pack:all && npm run smoke:install",
+        "test:all": "npm run test",
+        "validate:all": "npm run validate && npm run build --workspace=charts/react && npm run build --workspace=charts/vanilla && npm run build --workspace=charts/vue && npm run build --workspace=charts/svelte && npm run build --workspace=charts/angular && npm run build --workspace=charts/lit && npm run build --workspace=charts/solid"
+    },
+    "keywords": [
+        "charts",
+        "graphs",
+        "visualization",
+        "react",
+        "svg",
+        "canvas",
+        "sankey",
+        "line-chart",
+        "bar-chart",
+        "stacked-chart",
+        "multi-axis",
+        "timeline",
+        "animation",
+        "open-source",
+        "data-visualization",
+        "dataviz",
+        "analytical-software",
+        "dashboard",
+        "workbench",
+        "mui",
+        "material-ui",
+        "stylex",
+        "xstyle",
+        "css-in-js",
+        "smith-chart",
+        "polar-chart",
+        "contour",
+        "oscilloscope",
+        "spectrum-analyzer",
+        "engineering",
+        "aviation",
+        "color-palettes",
+        "dark-mode",
+        "risklab"
+    ],
+    "author": "RiskLab Contributors",
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/rpwalsh/risklab-charts",
+        "directory": "."
+    },
+    "homepage": "https://rpwalsh.github.io/",
+    "bugs": {
+        "url": "https://github.com/rpwalsh/risklab-charts/issues"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "peerDependencies": {
+        "@angular/core": ">=17.0.0",
+        "lit": ">=3.0.0",
+        "react": ">=18.0.0",
+        "react-dom": ">=18.0.0",
+        "solid-js": ">=1.8.0",
+        "svelte": ">=4.0.0",
+        "vue": ">=3.0.0"
+    },
+    "peerDependenciesMeta": {
+        "react": {
+            "optional": true
+        },
+        "react-dom": {
+            "optional": true
+        },
+        "solid-js": {
+            "optional": true
+        },
+        "vue": {
+            "optional": true
+        },
+        "svelte": {
+            "optional": true
+        },
+        "@angular/core": {
+            "optional": true
+        },
+        "lit": {
+            "optional": true
+        }
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.0.0",
+        "@types/node": "^25.5.0",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "@vitest/coverage-v8": "^3.0.0",
+        "eslint": "^9.0.0",
+        "eslint-plugin-react-hooks": "^7.0.1",
+        "jsdom": "^29.0.0",
+        "prettier": "^3.4.0",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
+        "rimraf": "^6.0.0",
+        "typedoc": "^0.28.18",
+        "typescript": "^5.7.0",
+        "typescript-eslint": "^8.0.0",
+        "vite": "^6.4.1",
+        "vitest": "^3.0.0"
+    },
+    "engines": {
+        "node": ">=20.0.0"
+    }
 }

@@ -30,6 +30,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', 'coverage/**', '*.config.*', 'tests/**', 'storybook-static/**', 'docs/**'],
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**', '*.config.*', 'tests/**', 'docs/**'],
   },
 );
