@@ -57,6 +57,9 @@ export type {
   Graph3DConfig,
   Graph3DLink,
   Graph3DWalkConfig,
+  OpenTopoConfig,
+  Terrain3DConfig,
+  Challenge3DConfig,
   ChartConfig,
   ResolvedScale,
   ChartState,
@@ -100,6 +103,10 @@ export { renderAnnotations } from './components/Annotations';
 
 // â”€â”€â”€ Charts (Standard) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export { renderChart } from './charts/index';
+export { BASIC_CHART_TYPES } from './charts/basic/supportedTypes';
+export type { BasicChartType } from './charts/basic/supportedTypes';
+export { ADVANCED_CHART_TYPES } from './charts/advanced/supportedTypes';
+export type { AdvancedChartType } from './charts/advanced/supportedTypes';
 export { renderGanttChart } from './charts/GanttChart';
 export { renderHistogramChart } from './charts/HistogramChart';
 export { renderOHLCChart } from './charts/OHLCChart';
@@ -247,9 +254,9 @@ export type { BoostOptions, BoostOperation } from './boost/index';
 export { RiskLabChartElement, defineRiskLabElement } from './adapters/webcomponent/RiskLabElement';
 
 // â”€â”€â”€ Vue 3 Adapter: import from '@risklab/charts/vue' (peer dep: vue@^3) â”€â”€â”€â”€â”€
-// Vue hooks are NOT re-exported here to avoid forcing bundlers to resolve the
-// optional 'vue' peer-dep for non-Vue users. Use the dedicated sub-path:
-//   import { useChart, useTheme, useSync } from '@risklab/charts/vue';
+// Framework adapters ship as dedicated packages instead of root subpaths:
+//   @risklab/charts-react, @risklab/charts-vue, @risklab/charts-svelte
+//   @risklab/charts-angular, @risklab/charts-lit, @risklab/charts-solid
 
 // â”€â”€â”€ StyleX / xstyle Adapter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export {
@@ -268,25 +275,10 @@ export { mount, autoInit, RiskLabAlpine, getStimulusControllerSource } from './a
 export type { VanillaChartInstance } from './adapters/vanilla/index';
 
 // â”€â”€â”€ Angular Adapter (Google) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export {
-  createAngularChart,
-  getAngularComponentSource,
-  getAngularServiceSource,
-} from './adapters/angular/index';
-export type { AngularChartRef } from './adapters/angular/index';
 
 // â”€â”€â”€ Svelte Adapter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export {
-  createSvelteChart,
-  getSvelteComponentSource,
-  getSvelte5ComponentSource,
-  getSvelteStoreSource,
-} from './adapters/svelte/index';
-export type { SvelteChartRef } from './adapters/svelte/index';
 
 // â”€â”€â”€ Lit Element Adapter (Google) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export { createLitChart, getLitComponentSource } from './adapters/lit/index';
-export type { LitChartRef } from './adapters/lit/index';
 
 // â”€â”€â”€ PivotChart â€” data-source driven cross-tabulation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export { pivotToChartConfig, pivotToMultiView, crossTabulate } from './charts/PivotChart';
@@ -348,5 +340,14 @@ export type {
 // â”€â”€â”€ RiskLab â€” top-level namespace (one import to rule them all) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export { RiskLab } from './sdk/RiskLab';
 export type { RiskLabNamespace } from './sdk/RiskLab';
-export { GRAPH_3D_CHART_TYPES } from './experimental/index';
-export type { Graph3DChartType, Graph3DRenderableData } from './experimental/index';
+// ——— Scenes (3D) ————————————————————————————————————————————————————————
+export { Graph3DScene, normalizeGraph3DSeries, GRAPH_3D_CHART_TYPES } from './scenes/index';
+export type { Graph3DChartType, Graph3DRenderableData } from './scenes/index';
+export { Terrain3DScene, TERRAIN_3D_CHART_TYPES } from './scenes/index';
+export type { Terrain3DChartType } from './scenes/index';
+export { Challenge3DScene, CHALLENGE_3D_CHART_TYPES } from './scenes/index';
+export type { Challenge3DChartType } from './scenes/index';
+export { THREE_D_CHART_TYPES } from './scenes/index';
+export type { Production3DChartType } from './scenes/index';
+export { fetchOpenTopoPoints, parseAAIGrid, aaigridToPoints } from './scenes/openTopo';
+export type { AAIGridData, OpenTopoGlobalDemType, OpenTopoUSGSDemType } from './scenes/openTopo';

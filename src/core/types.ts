@@ -375,8 +375,38 @@ export type ChartType =
   | 'bellcurve'
   | 'bellCurve'
   | 'normalDistribution'
-  // ── Curated 3D / Experimental ───────────────────────────────────────────
+  // ── 3D Scenes ───────────────────────────────────────────────────────────
   | 'graph3d'
+  | 'terrain3d'
+  | 'alphaLaplacianGraph3d'
+  | 'powerwalkGraph3d'
+  | 'graphManifold3d'
+  | 'spectralSurface3d'
+  | 'threatSurface3d'
+  | 'temporalGraphState3d'
+  | 'forecastCone3d'
+  | 'operationalSignalFusion3d'
+  | 'marketRegimeSurface3d'
+  | 'weatherDisasterSignalMap3d'
+  | 'raceOutcomeDistribution3d'
+  | 'anomalyDetectionField3d'
+  | 'eventSequenceMap3d'
+  | 'behaviorDrift3d'
+  | 'transactionFlowAnomaly3d'
+  | 'controlEventTimeline3d'
+  | 'deviceTelemetryLearning3d'
+  | 'adaptiveResourceUse3d'
+  | 'decisionAdvantage3d'
+  | 'airGappedExecution3d'
+  | 'crossScaleIntelligence3d'
+  | 'deviceFleetHealth3d'
+  | 'missionOutcomes3d'
+  | 'forecastWeightedControl3d'
+  | 'signalConsolidation3d'
+  | 'adaptiveFabricEvolution3d'
+  | 'laplacianFabricCone3d'
+  | 'laserPointMap3d'
+  | 'geojsonExtrusion3d'
   // ── Custom ──────────────────────────────────────────────────────────────
   | 'custom';
 
@@ -1154,6 +1184,171 @@ export interface Graph3DConfig {
 }
 
 // ---------------------------------------------------------------------------
+// 20a. Terrain 3D Config
+// ---------------------------------------------------------------------------
+
+/**
+ * Configuration for auto-fetching elevation data from the OpenTopography API.
+ * Used inside `Terrain3DConfig.openTopo`.
+ *
+ * @see https://portal.opentopography.org/apidocs/
+ */
+export interface OpenTopoConfig {
+  /**
+   * Data source:
+   * - `'global'` — OpenTopography global datasets (SRTM, Copernicus, ALOS, etc.)
+   * - `'usgs'`   — USGS 3DEP raster datasets (US coverage only)
+   */
+  source: 'global' | 'usgs';
+  /**
+   * DEM type / dataset ID:
+   * - Global: `'SRTMGL3'` (90m), `'SRTMGL1'` (30m), `'COP30'` (30m), `'COP90'` (90m),
+   *   `'AW3D30'` (30m), `'NASADEM'` (30m), `'SRTM15Plus'` (500m bathymetry), etc.
+   * - USGS: `'USGS30m'`, `'USGS10m'`, `'USGS1m'` (US only, 1m restricted to academic)
+   */
+  demtype: string;
+  /** South latitude boundary, WGS 84 (−90 to 90). */
+  south: number;
+  /** North latitude boundary, WGS 84 (−90 to 90). */
+  north: number;
+  /** West longitude boundary, WGS 84 (−180 to 180). */
+  west: number;
+  /** East longitude boundary, WGS 84 (−180 to 180). */
+  east: number;
+  /**
+   * OpenTopography API key.
+   * Free keys: https://portal.opentopography.org/requestService?service=api
+   * Demo key for testing: `'demoapikeyot2022'`
+   */
+  apiKey: string;
+  /**
+   * Optional CORS proxy prefix for browser use.
+   * The OT API does not emit CORS headers for arbitrary origins.
+   *
+   * - In **Vite dev**: configure `server.proxy` and omit this field.
+   * - In **production**: supply a proxy, e.g. `'https://corsproxy.io/?'`.
+   *
+   * When omitted, requests go to `/api/opentopo/…` (relative) which requires
+   * a reverse-proxy route to `https://portal.opentopography.org/API`.
+   */
+  proxy?: string;
+}
+
+/** Configuration for the terrain3d WebGL chart type. */
+export interface Terrain3DConfig {
+  /**
+   * Width of the elevation grid in vertices.  Supply this when data is a
+   * structured row-major heightmap (e.g. GeoTIFF-derived array).
+   * Omit for unordered LiDAR point clouds — the scene auto-sizes the grid.
+   */
+  gridWidth?: number;
+  /** Height of the elevation grid in vertices. */
+  gridHeight?: number;
+  /**
+   * Elevation colormap.
+   * - 'hypsometric' (default): deep-blue sea → green → tan → snow-white
+   * - 'viridis': purple → teal → yellow
+   * - 'thermal': blue → red → yellow
+   * - 'gray': monochrome
+   */
+  colormap?: 'hypsometric' | 'viridis' | 'thermal' | 'gray';
+  /** Vertical exaggeration factor (default 1). Try 2–5 for subtle terrain. */
+  exaggeration?: number;
+  /** Enable Lambertian shading (default true). */
+  lighting?: boolean;
+  /** Light direction [x, y, z] in world space. Default [0.5, 1.0, 0.8]. */
+  lightDirection?: [number, number, number];
+  /** Draw contour iso-lines in the fragment shader. */
+  contours?: boolean;
+  /**
+   * Contour interval in the same units as the elevation (z) values.
+   * E.g. 100 draws a line every 100 m.
+   */
+  contourInterval?: number;
+  /** Contour line colour (hex). Default '#ffffff'. */
+  contourColor?: string;
+  /** Overlay a wireframe grid. Useful for debugging grid resolution. */
+  wireframe?: boolean;
+  /** Wireframe colour (hex). Default '#ffffff'. */
+  wireframeColor?: string;
+  /** Canvas background colour (hex). Default '#040b15'. */
+  backgroundColor?: string;
+  /** Initial orbit azimuth in radians. Overrides auto-fit default when provided. */
+  initialAzimuth?: number;
+  /** Initial orbit polar angle in radians. Overrides auto-fit default when provided. */
+  initialPolar?: number;
+  /** Initial camera distance. Overrides auto-fit default when provided. */
+  initialDistance?: number;
+  /** Optional building extrusions in the same x/y coordinate system as the terrain points. */
+  buildings?: Array<{
+    x: number;
+    y: number;
+    height: number;
+    width?: number;
+    depth?: number;
+    color?: string;
+  }>;
+  /**
+   * Camera projection mode.
+   * - `'perspective'` (default): standard 3D orbit view
+   * - `'orthographic'`: true top-down planview, like a tactical map tile
+   */
+  projection?: 'perspective' | 'orthographic';
+  /**
+   * Reserved for future streaming tile support.
+   * URL template with {z}/{x}/{y} tokens for server-side tile pyramids
+   * (national LiDAR archives, Copernicus DEM, USGS 3DEP, etc.).
+   */
+  tileUrl?: string;
+  /**
+   * Auto-fetch elevation data from the OpenTopography API.
+   *
+   * When set **and** the terrain3d series has no data points, `Terrain3DScene`
+   * automatically calls the OpenTopography REST API, parses the AAIGrid
+   * response, and renders the result.  A loading indicator is shown while the
+   * request is in flight.
+   *
+   * @example
+   * ```ts
+   * terrain3d: {
+   *   openTopo: {
+   *     source:  'global',
+   *     demtype: 'SRTMGL1',      // 30 m global SRTM
+   *     south: 36.05, north: 36.20,
+   *     west: -112.20, east: -112.00,
+   *     apiKey: 'demoapikeyot2022',
+   *   },
+   *   colormap: 'hypsometric',
+   *   exaggeration: 3,
+   * }
+   * ```
+   */
+  openTopo?: OpenTopoConfig;
+}
+
+// ---------------------------------------------------------------------------
+// 20b. Challenge 3D Config
+// ---------------------------------------------------------------------------
+
+/** Configuration for the synthetic mission-grade 3-D demo surfaces. */
+export interface Challenge3DConfig {
+  /** Initial orbit azimuth in radians. */
+  initialAzimuth?: number;
+  /** Initial orbit polar angle in radians. */
+  initialPolar?: number;
+  /** Initial camera distance. */
+  initialDistance?: number;
+  /** Overall zoom multiplier for the projected scene. */
+  zoom?: number;
+  /** Forecast cone layer count. */
+  layers?: number;
+  /** Synthetic alpha exponent shown in alpha-Laplacian demo surfaces. */
+  alpha?: number;
+  /** Optional scene background colour. Defaults to the chart theme background. */
+  backgroundColor?: ColorValue;
+}
+
+// ---------------------------------------------------------------------------
 // 20. Master Chart Configuration
 // ---------------------------------------------------------------------------
 
@@ -1278,6 +1473,10 @@ export interface ChartConfig {
   bellCurve?: import('../charts/BellCurveChart').BellCurveConfig;
   /** Native WebGL graph field config */
   graph3d?: Graph3DConfig;
+  /** Native WebGL 3-D terrain / LiDAR config */
+  terrain3d?: Terrain3DConfig;
+  /** 3-D cone, point-map, and geospatial extrusion surface config */
+  challenge3d?: Challenge3DConfig;
   /** Navigator config (stock chart-style mini chart) */
   navigator?: import('../charts/advanced/NavigatorChart').NavigatorConfig;
   /** Range selector config (preset date buttons) */

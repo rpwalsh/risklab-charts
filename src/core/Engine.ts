@@ -55,7 +55,9 @@ import {
   type RangeSelectorConfig,
   type RangeSelectorButton,
 } from '../charts/advanced/RangeSelector';
-import { Graph3DScene } from '../experimental/Graph3DScene';
+import { Graph3DScene, GRAPH_3D_CHART_TYPES } from '../scenes/Graph3DScene';
+import { Terrain3DScene, TERRAIN_3D_CHART_TYPES } from '../scenes/Terrain3DScene';
+import { Challenge3DScene, CHALLENGE_3D_CHART_TYPES } from '../scenes/Challenge3DScene';
 
 // ── Public-facing type interfaces for adapter / plugin access ──────────────
 
@@ -159,8 +161,14 @@ const AXISLESS_TYPES = new Set([
   'bullet', 'bulletChart',
   'flameChart',
   'oscilloscope',
-  'graph3d',
+  ...GRAPH_3D_CHART_TYPES,
+  ...TERRAIN_3D_CHART_TYPES,
+  ...CHALLENGE_3D_CHART_TYPES,
 ]);
+
+const GRAPH_3D_TYPE_SET = new Set<string>(GRAPH_3D_CHART_TYPES);
+const TERRAIN_3D_TYPE_SET = new Set<string>(TERRAIN_3D_CHART_TYPES);
+const CHALLENGE_3D_TYPE_SET = new Set<string>(CHALLENGE_3D_CHART_TYPES);
 
 /** Estimate vertical space for a title/subtitle line */
 function estimateTitleHeight(text: string | undefined, fontSize: number): number {
@@ -356,6 +364,8 @@ export class Engine {
   private panStartDomains = new Map<string, [number, number] | string[]>();
   private selectionOverlay: HTMLElement | null = null;
   private graph3DScene: Graph3DScene | null = null;
+  private terrain3DScene: Terrain3DScene | null = null;
+  private challenge3DScene: Challenge3DScene | null = null;
   private selectionStartX = 0;
   private selectionStartY = 0;
   private pinchStartDist = 0;
@@ -379,6 +389,10 @@ export class Engine {
     if (t.closest?.('[data-uc-tilemap]')) return true;
     if (t.hasAttribute?.('data-uc-graph3d')) return true;
     if (t.closest?.('[data-uc-graph3d]')) return true;
+    if (t.hasAttribute?.('data-uc-terrain3d')) return true;
+    if (t.closest?.('[data-uc-terrain3d]')) return true;
+    if (t.hasAttribute?.('data-uc-challenge3d')) return true;
+    if (t.closest?.('[data-uc-challenge3d]')) return true;
     return false;
   }
 
@@ -697,6 +711,16 @@ export class Engine {
     this.graph3DScene = null;
   }
 
+  private destroyTerrain3DScene(): void {
+    this.terrain3DScene?.destroy();
+    this.terrain3DScene = null;
+  }
+
+  private destroyChallenge3DScene(): void {
+    this.challenge3DScene?.destroy();
+    this.challenge3DScene = null;
+  }
+
   // ── Export ─────────────────────────────────────────────────────────────────
 
   /** Export the chart */
@@ -704,7 +728,11 @@ export class Engine {
     this.bus.emit('exportStart', { payload: { format } });
     const result = this.graph3DScene
       ? await this.graph3DScene.export(format)
-      : await this.renderer.export(format);
+      : this.terrain3DScene
+        ? await this.terrain3DScene.export(format)
+        : this.challenge3DScene
+          ? await this.challenge3DScene.export(format)
+          : await this.renderer.export(format);
     this.bus.emit('exportEnd', { payload: { format } });
     return result;
   }
@@ -716,6 +744,8 @@ export class Engine {
     this.computeChartArea();
     this.renderer.setSize(this.state.width, this.state.height);
     this.graph3DScene?.resize(this.state.chartArea);
+    this.terrain3DScene?.resize(this.state.chartArea);
+    this.challenge3DScene?.resize(this.state.chartArea);
     this.applyPluginHookVoid('onResize', this.state.width, this.state.height);
     this.bus.emit('resize', {});
     this.render();
@@ -730,6 +760,8 @@ export class Engine {
     this.resizeObserver?.disconnect();
     this.timelinePlayback?.destroy();
     this.destroyGraph3DScene();
+    this.destroyTerrain3DScene();
+    this.destroyChallenge3DScene();
     this.renderer?.destroy();
     this.bus.destroy();
     // Remove interaction overlay elements
@@ -989,8 +1021,10 @@ export class Engine {
       });
     }
 
-    const graph3DSeries = this.processedSeries.filter((series) => series.type === 'graph3d');
+    const graph3DSeries = this.processedSeries.filter((series) => GRAPH_3D_TYPE_SET.has(series.type));
     if (graph3DSeries.length > 0 && this.container) {
+      this.destroyTerrain3DScene();
+      this.destroyChallenge3DScene();
       this.graph3DScene ??= new Graph3DScene({ host: this.container, bus: this.bus });
       this.graph3DScene.update({
         series: graph3DSeries,
@@ -1004,6 +1038,39 @@ export class Engine {
     }
 
     if (this.graph3DScene) this.destroyGraph3DScene();
+
+    const terrain3DSeries = this.processedSeries.filter((series) => TERRAIN_3D_TYPE_SET.has(series.type));
+    if (terrain3DSeries.length > 0 && this.container) {
+      this.destroyChallenge3DScene();
+      this.terrain3DScene ??= new Terrain3DScene({ host: this.container, bus: this.bus });
+      this.terrain3DScene.update({
+        series: terrain3DSeries,
+        state: this.state,
+        theme: this.theme,
+        config: this.config,
+      });
+      this.bus.emit('afterRender', {});
+      this.applyPluginHookVoid('afterRender', this);
+      return;
+    }
+
+    if (this.terrain3DScene) this.destroyTerrain3DScene();
+
+    const challenge3DSeries = this.processedSeries.filter((series) => CHALLENGE_3D_TYPE_SET.has(series.type));
+    if (challenge3DSeries.length > 0 && this.container) {
+      this.challenge3DScene ??= new Challenge3DScene({ host: this.container, bus: this.bus });
+      this.challenge3DScene.update({
+        series: challenge3DSeries,
+        state: this.state,
+        theme: this.theme,
+        config: this.config,
+      });
+      this.bus.emit('afterRender', {});
+      this.applyPluginHookVoid('afterRender', this);
+      return;
+    }
+
+    if (this.challenge3DScene) this.destroyChallenge3DScene();
 
     // 7. Draw axes (skip for non-Cartesian chart types)
     const resolvedAxes = this.config.axes ?? [];
@@ -1257,7 +1324,7 @@ export class Engine {
       if (series.type === 'waterfall' && isY) {
         let cumulative = 0;
         for (const d of series.data) {
-          const v = (d as ProcessedDataPoint).yNum ?? Number(d.y) ?? 0;
+          const v = (d as ProcessedDataPoint).yNum ?? (Number(d.y) || 0);
           const isTotal = d.meta?.isTotal === true;
           if (!isTotal) cumulative += v;
           min = Math.min(min, 0, cumulative);

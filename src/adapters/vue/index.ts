@@ -31,7 +31,7 @@ import type { SyncOptions } from '../../core/SyncController';
  *
  * ```ts
  * import * as Vue from 'vue';
- * import { initVueAdapter } from '@risklab/charts/vue';
+ * import { initVueAdapter } from '@risklab/charts-vue';
  * initVueAdapter(Vue);
  * ```
  *
@@ -135,7 +135,7 @@ function _setupChartSync(
  * @example
  * ```vue
  * <script setup lang="ts">
- * import { useChart } from '@risklab/charts/vue';
+ * import { useChart } from '@risklab/charts-vue';
  * const { el, engine, setTheme } = useChart({ series: [...], theme: 'dark' });
  * </script>
  * <template><div :ref="el" style="width:100%;height:400px" /></template>

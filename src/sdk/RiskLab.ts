@@ -193,29 +193,17 @@ export const RiskLab = {
     /**
      * Angular adapter utilities — imperative factory + source code generators.
      */
-    angular: {
-      create: createAngularChart,
-      componentSource: getAngularComponentSource,
-      serviceSource: getAngularServiceSource,
-    },
+    angular: { create: createAngularChart, componentSource: getAngularComponentSource, serviceSource: getAngularServiceSource },
 
     /**
      * Svelte adapter utilities — imperative factory + SFC source generators.
      */
-    svelte: {
-      create: createSvelteChart,
-      componentSource: getSvelteComponentSource,
-      svelte5Source: getSvelte5ComponentSource,
-      storeSource: getSvelteStoreSource,
-    },
+    svelte: { create: createSvelteChart, componentSource: getSvelteComponentSource, svelte5Source: getSvelte5ComponentSource, storeSource: getSvelteStoreSource },
 
     /**
      * Lit (Web Components) adapter utilities.
      */
-    lit: {
-      create: createLitChart,
-      componentSource: getLitComponentSource,
-    },
+    lit: { create: createLitChart, componentSource: getLitComponentSource },
   },
 } as const;
 

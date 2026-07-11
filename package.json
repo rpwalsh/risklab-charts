@@ -57,14 +57,9 @@
             "require": "./dist/cjs/charts/advanced/index.js"
         },
         "./3d": {
-            "types": "./dist/types/experimental/index.d.ts",
-            "import": "./dist/esm/experimental/index.js",
-            "require": "./dist/cjs/experimental/index.js"
-        },
-        "./experimental": {
-            "types": "./dist/types/experimental/index.d.ts",
-            "import": "./dist/esm/experimental/index.js",
-            "require": "./dist/cjs/experimental/index.js"
+            "types": "./dist/types/scenes/index.d.ts",
+            "import": "./dist/esm/scenes/index.js",
+            "require": "./dist/cjs/scenes/index.js"
         },
         "./themes/default": {
             "types": "./dist/types/themes/defaultTheme.d.ts",

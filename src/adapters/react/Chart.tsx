@@ -81,7 +81,27 @@ export interface ChartHandle {
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
-export interface ChartProps {
+export interface ChartProps extends Omit<Partial<ChartConfig>,
+  'container'
+  | 'series'
+  | 'title'
+  | 'subtitle'
+  | 'width'
+  | 'height'
+  | 'renderer'
+  | 'theme'
+  | 'legend'
+  | 'tooltip'
+  | 'animation'
+  | 'timeline'
+  | 'interaction'
+  | 'annotations'
+  | 'export'
+  | 'accessibility'
+  | 'responsive'
+  | 'plugins'
+  | 'events'
+> {
   /** Array of data series */
   series: SeriesConfig[];
   /** Chart title */
@@ -189,6 +209,7 @@ export const Chart = memo(
       onSeriesToggle,
       onSelection,
       events,
+      ...passthroughConfig
     } = props;
 
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -223,6 +244,7 @@ export const Chart = memo(
 
       return {
         ...providerDefaults,
+        ...passthroughConfig,
         series,
         title: title ? { text: title } : providerDefaults.title,
         subtitle: subtitle ? { text: subtitle } : providerDefaults.subtitle,

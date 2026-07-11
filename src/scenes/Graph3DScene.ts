@@ -276,7 +276,19 @@ void main() {
 }
 `;
 
-export const GRAPH_3D_CHART_TYPES = ['graph3d'] as const;
+export const GRAPH_3D_CHART_TYPES = [
+  'graph3d',
+  'alphaLaplacianGraph3d',
+  'powerwalkGraph3d',
+  'graphManifold3d',
+  'anomalyDetectionField3d',
+  'eventSequenceMap3d',
+  'transactionFlowAnomaly3d',
+  'decisionAdvantage3d',
+  'airGappedExecution3d',
+  'forecastWeightedControl3d',
+  'adaptiveFabricEvolution3d',
+] as const;
 export type Graph3DChartType = typeof GRAPH_3D_CHART_TYPES[number];
 
 export class Graph3DScene {

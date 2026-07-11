@@ -15,12 +15,12 @@ export function renderWindRose(
   const { chartArea: ca } = state;
   const cx = ca.x + ca.width / 2;
   const cy = ca.y + ca.height / 2;
-  const maxR = Math.min(ca.width, ca.height) / 2 - 30;
+  const maxR = Math.max(0, (Math.min(ca.width, ca.height) / 2) - 30);
 
   // Data: each point x = direction (N,NNE,NE,...or degrees), y = frequency/speed
   // If multiple series, they stack as speed bands
   const data = series.data.filter(d => d.x != null && d.y != null);
-  if (!data.length) return;
+  if (!data.length || maxR < 16) return;
 
   const n = data.length;
   const sliceAngle = TAU / n;

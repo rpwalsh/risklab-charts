@@ -80,7 +80,7 @@ export class SVGRenderer extends BaseRenderer {
     const circle = document.createElementNS(SVG_NS, 'circle');
     circle.setAttribute('cx', String(cx));
     circle.setAttribute('cy', String(cy));
-    circle.setAttribute('r', String(r));
+    circle.setAttribute('r', String(Math.max(0, r)));
     this.applyStyle(circle, style);
     this.currentParent.appendChild(circle);
   }

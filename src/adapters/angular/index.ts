@@ -5,7 +5,7 @@
 // Compatible with Angular's change detection (OnPush or Default).
 //
 // Usage (standalone):
-//   import { RiskLabChartComponent } from '@risklab/charts/angular';
+//   import { RiskLabChartComponent } from '@risklab/charts-angular';
 //
 //   @Component({
 //     imports: [RiskLabChartComponent],
@@ -100,7 +100,7 @@ import {
   ElementRef, OnInit, OnChanges, OnDestroy, AfterViewInit,
   ChangeDetectionStrategy, SimpleChanges, NgModule,
 } from '@angular/core';
-import { createAngularChart, type AngularChartRef } from '@risklab/charts/angular';
+import { createAngularChart, type AngularChartRef } from '@risklab/charts-angular';
 import type { ChartConfig, ThemeConfig } from '@risklab/charts';
 
 @Component({
@@ -172,7 +172,7 @@ export class RiskLabModule {}
 export function getAngularServiceSource(): string {
   return `
 import { Injectable, OnDestroy } from '@angular/core';
-import type { AngularChartRef } from '@risklab/charts/angular';
+import type { AngularChartRef } from '@risklab/charts-angular';
 
 @Injectable({ providedIn: 'root' })
 export class RiskLabService implements OnDestroy {

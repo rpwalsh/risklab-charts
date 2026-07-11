@@ -1,5 +1,5 @@
 ﻿// ============================================================================
-// RiskLab Charts — 54 Color Palettes (Light & Dark Mode)
+// RiskLab Charts — 50 Color Palettes (Light & Dark Mode)
 // Accessible, beautiful, production-grade. Each has 12 series colors.
 // ============================================================================
 
@@ -52,6 +52,9 @@ export function paletteToTheme(pair: PalettePair, mode: 'light' | 'dark'): Theme
 // ── The 50 Palettes ─────────────────────────────────────────────────────
 
 export const palettes: PalettePair[] = [
+  { id: 'dracula', name: 'Dracula', category: 'creative',
+    light: { palette: ['#6d28d9','#db2777','#0891b2','#059669','#d97706','#dc2626','#4f46e5','#0f766e','#9333ea','#be123c','#0369a1','#4d7c0f'], background: '#f8f8f2', surface: '#ffffff', text: '#282a36', textSecondary: '#6272a4', grid: '#e7e7df', axis: '#b8b8ae', tooltipBg: '#ffffff', tooltipText: '#282a36', tooltipBorder: '#d7d7cf' },
+    dark: { palette: ['#bd93f9','#ff79c6','#8be9fd','#50fa7b','#f1fa8c','#ff5555','#6272a4','#69ff94','#d6acff','#ff92df','#a4ffff','#ffffa5'], background: '#282a36', surface: '#343746', text: '#f8f8f2', textSecondary: '#b8b8c5', grid: '#3f4252', axis: '#6272a4', tooltipBg: '#343746', tooltipText: '#f8f8f2', tooltipBorder: '#6272a4' } },
   // ──────────────────────── CORPORATE ────────────────────────
   { id: 'midnight-pro', name: 'Midnight Pro', category: 'corporate',
     light: { palette: ['#1e40af','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#be185d','#4f46e5','#15803d','#ea580c','#7e22ce','#0369a1'],
@@ -233,18 +236,6 @@ export const palettes: PalettePair[] = [
     dark: { palette: ['#00ff00','#ff8800','#ff3333','#4499ff','#ff44ff','#00dddd','#dddd00','#999999','#33ff33','#ffaa33','#ff5555','#55aaff'],
       background: '#0a0a05', surface: '#1a1a0a', text: '#00ff00', textSecondary: '#008800', grid: '#1a1a0a', axis: '#222210', tooltipBg: '#1a1a0a', tooltipText: '#00ff00', tooltipBorder: '#222210' } },
 
-  { id: 'solarized', name: 'Solarized', category: 'retro',
-    light: { palette: ['#268bd2','#2aa198','#859900','#b58900','#cb4b16','#dc322f','#d33682','#6c71c4','#268bd2','#2aa198','#859900','#b58900'],
-      background: '#fdf6e3', surface: '#eee8d5', text: '#073642', textSecondary: '#586e75', grid: '#eee8d5', axis: '#93a1a1', tooltipBg: '#fdf6e3', tooltipText: '#073642', tooltipBorder: '#93a1a1' },
-    dark: { palette: ['#268bd2','#2aa198','#859900','#b58900','#cb4b16','#dc322f','#d33682','#6c71c4','#268bd2','#2aa198','#859900','#b58900'],
-      background: '#002b36', surface: '#073642', text: '#839496', textSecondary: '#586e75', grid: '#073642', axis: '#586e75', tooltipBg: '#073642', tooltipText: '#839496', tooltipBorder: '#586e75' } },
-
-  { id: 'dracula', name: 'Dracula', category: 'retro',
-    light: { palette: ['#7c3aed','#059669','#f97316','#ec4899','#06b6d4','#eab308','#ef4444','#a855f7','#10b981','#f59e0b','#f43f5e','#0ea5e9'],
-      background: '#faf7ff', surface: '#ede9fe', text: '#2e1065', textSecondary: '#6d28d9', grid: '#ddd6fe', axis: '#c4b5fd', tooltipBg: '#fff', tooltipText: '#2e1065', tooltipBorder: '#ddd6fe' },
-    dark: { palette: ['#bd93f9','#50fa7b','#ffb86c','#ff79c6','#8be9fd','#f1fa8c','#ff5555','#bd93f9','#50fa7b','#ffb86c','#ff79c6','#8be9fd'],
-      background: '#282a36', surface: '#44475a', text: '#f8f8f2', textSecondary: '#6272a4', grid: '#44475a', axis: '#6272a4', tooltipBg: '#44475a', tooltipText: '#f8f8f2', tooltipBorder: '#6272a4' } },
-
   // ──────────────────────── NEON ────────────────────────
   { id: 'neon-city', name: 'Neon City', category: 'neon',
     light: { palette: ['#c026d3','#06b6d4','#ec4899','#22c55e','#f97316','#6366f1','#eab308','#0ea5e9','#f43f5e','#a855f7','#84cc16','#14b8a6'],
@@ -372,23 +363,12 @@ export const palettes: PalettePair[] = [
     dark: { palette: ['#fcee09','#00fFca','#ff3547','#e900ff','#3366ff','#39ff14','#ff6a00','#bf40ff','#00e5ff','#ff0040','#76ff03','#7c4dff'],
       background: '#0c0c14', surface: '#14141e', text: '#fcee09', textSecondary: '#b0a800', grid: '#14141e', axis: '#1e1e28', tooltipBg: '#14141e', tooltipText: '#fcee09', tooltipBorder: '#1e1e28' } },
 
-  { id: 'tokyo-night', name: 'Tokyo Night', category: 'cool',
-    light: { palette: ['#2e7de9','#f52a65','#587539','#946be0','#166775','#b35900','#007a76','#8c6c3e','#9854f1','#118c74','#0f4b6e','#ad5c7c'],
-      background: '#e1e2e7', surface: '#d5d6db', text: '#343b59', textSecondary: '#6172b0', grid: '#c8c9ce', axis: '#b0b1b6', tooltipBg: '#fff', tooltipText: '#343b59', tooltipBorder: '#c8c9ce' },
-    dark: { palette: ['#7aa2f7','#f7768e','#9ece6a','#bb9af7','#2ac3de','#ff9e64','#73daca','#e0af68','#7dcfff','#1abc9c','#89ddff','#c0caf5'],
-      background: '#1a1b26', surface: '#24283b', text: '#c0caf5', textSecondary: '#565f89', grid: '#24283b', axis: '#3b4261', tooltipBg: '#24283b', tooltipText: '#c0caf5', tooltipBorder: '#3b4261' } },
-
   { id: 'nord', name: 'Nord', category: 'cool',
     light: { palette: ['#5e81ac','#bf616a','#a3be8c','#b48ead','#88c0d0','#d08770','#ebcb8b','#81a1c1','#8fbcbb','#bf616a','#a3be8c','#b48ead'],
       background: '#eceff4', surface: '#e5e9f0', text: '#2e3440', textSecondary: '#4c566a', grid: '#d8dee9', axis: '#c0c8d4', tooltipBg: '#eceff4', tooltipText: '#2e3440', tooltipBorder: '#c0c8d4' },
     dark: { palette: ['#88c0d0','#bf616a','#a3be8c','#b48ead','#5e81ac','#d08770','#ebcb8b','#81a1c1','#8fbcbb','#bf616a','#a3be8c','#b48ead'],
       background: '#2e3440', surface: '#3b4252', text: '#eceff4', textSecondary: '#d8dee9', grid: '#3b4252', axis: '#434c5e', tooltipBg: '#3b4252', tooltipText: '#eceff4', tooltipBorder: '#4c566a' } },
 
-  { id: 'gruvbox', name: 'Gruvbox', category: 'retro',
-    light: { palette: ['#cc241d','#98971a','#d79921','#458588','#b16286','#689d6a','#d65d0e','#928374','#9d0006','#79740e','#b57614','#076678'],
-      background: '#fbf1c7', surface: '#f2e5bc', text: '#3c3836', textSecondary: '#665c54', grid: '#ebdbb2', axis: '#d5c4a1', tooltipBg: '#fbf1c7', tooltipText: '#3c3836', tooltipBorder: '#d5c4a1' },
-    dark: { palette: ['#fb4934','#b8bb26','#fabd2f','#83a598','#d3869b','#8ec07c','#fe8019','#a89984','#cc241d','#98971a','#d79921','#458588'],
-      background: '#282828', surface: '#3c3836', text: '#ebdbb2', textSecondary: '#a89984', grid: '#3c3836', axis: '#504945', tooltipBg: '#3c3836', tooltipText: '#ebdbb2', tooltipBorder: '#504945' } },
 ];
 
 // ── Quick lookup ─────────────────────────────────────────────────────────

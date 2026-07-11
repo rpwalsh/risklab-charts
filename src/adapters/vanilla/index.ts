@@ -8,7 +8,7 @@
 // All you need:
 //   <div id="chart"></div>
 //   <script type="module">
-//     import { mount } from '@risklab/charts/vanilla';
+//     import { mount } from '@risklab/charts';
 //     const chart = mount('#chart', { type: 'line', series: [...] });
 //   </script>
 // ============================================================================
@@ -80,7 +80,7 @@ export interface VanillaChartInstance {
  *
  * @example
  * ```js
- * import { mount } from '@risklab/charts/vanilla';
+ * import { mount } from '@risklab/charts';
  *
  * const chart = mount('#revenue-chart', {
  *   series: [{ id: 's1', name: 'Revenue', type: 'bar', data: [...] }],
@@ -187,7 +187,7 @@ export const RiskLabAlpine = {
 export function getStimulusControllerSource(): string {
   return `
 import { Controller } from '@hotwired/stimulus';
-import { mount } from '@risklab/charts/vanilla';
+import { mount } from '@risklab/charts';
 
 export default class RiskLabController extends Controller {
   static values = { config: Object, theme: String };
@@ -241,7 +241,7 @@ function resolveContainer(container: string | HTMLElement): HTMLElement {
  * ```html
  * <div data-chart='{"type":"bar","series":[...]}' style="height:300px"></div>
  * <script>
- *   import { autoInit } from '@risklab/charts/vanilla';
+ *   import { autoInit } from '@risklab/charts';
  *   document.addEventListener('DOMContentLoaded', autoInit);
  * </script>
  * ```
