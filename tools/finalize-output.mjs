@@ -12,7 +12,7 @@ async function visit(directory) {
     if (entry.isDirectory()) await visit(path);
     else if (entry.name.endsWith('.js')) {
       const source = await readFile(path, 'utf8');
-      const rewritten = source.replace(/(from\s+['"]|import\s*\(\s*['"])(\.\.?\/[^'"\n]+?)(['"]\s*\)?)/g, (match, open, specifier, close) => {
+      const rewritten = source.replace(/(from\s+['"]|import\s*(?:\(\s*)?['"])(\.\.?\/[^'"\n]+?)(['"]\s*\)?)/g, (match, open, specifier, close) => {
         if (/\.(?:css|js|json|mjs|svg)$/.test(specifier)) return match;
         const base = resolve(dirname(path), specifier);
         if (existsSync(`${base}.js`)) return `${open}${specifier}.js${close}`;

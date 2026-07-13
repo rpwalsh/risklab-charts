@@ -346,8 +346,6 @@ export type { RiskLabNamespace } from './sdk/RiskLab';
 // ——— Scenes (3D) ————————————————————————————————————————————————————————
 export { Graph3DScene, normalizeGraph3DSeries, GRAPH_3D_CHART_TYPES } from './scenes/index';
 export type { Graph3DChartType, Graph3DRenderableData } from './scenes/index';
-export { MISSION_DOCUMENT_VERSION, validateMissionDocument, missionPanelToChartConfig } from './mission/MissionDocument';
-export type { MissionDocument, MissionPanel, MissionDataset } from './mission/MissionDocument';
 export { Terrain3DScene, TERRAIN_3D_CHART_TYPES } from './scenes/index';
 export type { Terrain3DChartType } from './scenes/index';
 export { Challenge3DScene, CHALLENGE_3D_CHART_TYPES } from './scenes/index';
