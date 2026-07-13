@@ -16,7 +16,9 @@ export class CanvasRenderer extends BaseRenderer {
   constructor(container: HTMLElement, width: number, height: number) {
     super(container, width, height);
 
-    this.dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    this.dpr = typeof window !== 'undefined'
+      ? Math.min(Math.max(window.devicePixelRatio || 1, 2), 3)
+      : 2;
     this.canvas = document.createElement('canvas');
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;

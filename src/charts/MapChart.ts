@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Interactive Tile Map + Choropleth
 // Zoomable tile-based map with OSM tiles, pan/zoom, data overlay.
 // Falls back to SVG choropleth when no container available for Canvas.
@@ -56,6 +56,9 @@ export interface MapChartConfig {
 interface TileMapState {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
+  width: number;
+  height: number;
+  dpr: number;
   center: [number, number];
   zoom: number;
   tileUrl: string;
@@ -211,9 +214,9 @@ function loadTile(url: string, cache: Map<string, HTMLImageElement>): HTMLImageE
 }
 
 function drawTiles(ms: TileMapState): void {
-  const { canvas, ctx, center, zoom, tileUrl, tileCache } = ms;
-  const w = canvas.width;
-  const h = canvas.height;
+  const { ctx, center, zoom, tileUrl, tileCache } = ms;
+  const w = ms.width;
+  const h = ms.height;
   const z = Math.floor(zoom);
   const tileSize = 256;
   const numTiles = Math.pow(2, z);
@@ -259,9 +262,9 @@ function drawTiles(ms: TileMapState): void {
 // ── Data overlay ─────────────────────────────────────────────────────────────
 
 function drawDataOverlay(ms: TileMapState): void {
-  const { ctx, canvas, center, zoom, data, colorLow, colorHigh, vMin, vMax } = ms;
-  const w = canvas.width;
-  const h = canvas.height;
+  const { ctx, center, zoom, data, colorLow, colorHigh, vMin, vMax } = ms;
+  const w = ms.width;
+  const h = ms.height;
   const vSpan = vMax - vMin || 1;
   const baseR = Math.max(5, Math.min(16, 3 + zoom * 1.5));
 
@@ -311,7 +314,7 @@ function findNearestDatum(ms: TileMapState, mx: number, my: number, threshold = 
   let bestDist = threshold;
 
   for (const datum of data) {
-    const [px, py] = lonLatToPixel(datum.lon, datum.lat, zoom, center[0], center[1], canvas.width, canvas.height);
+    const [px, py] = lonLatToPixel(datum.lon, datum.lat, zoom, center[0], center[1], ms.width, ms.height);
     const dist = Math.sqrt((mx - px) ** 2 + (my - py) ** 2);
     if (dist <= bestDist) {
       const t = Math.max(0, Math.min(1, (datum.value - vMin) / vSpan));
@@ -339,7 +342,7 @@ function showMapTooltip(ms: TileMapState, hit: TileMapHit, pinned: boolean): voi
   if (!tip) return;
   tip.innerHTML = buildMapTooltipHTML(hit, pinned);
   tip.style.display = 'block';
-  tip.style.left = `${Math.min(hit.px + 12, ms.canvas.width - 140)}px`;
+  tip.style.left = `${Math.min(hit.px + 12, ms.width - 140)}px`;
   tip.style.top = `${Math.max(10, hit.py - 44)}px`;
   tip.style.pointerEvents = 'none';
 
@@ -353,11 +356,11 @@ function showMapTooltip(ms: TileMapState, hit: TileMapHit, pinned: boolean): voi
 
 function refreshPinnedTooltip(ms: TileMapState): void {
   if (!ms.pinnedLabel) return;
-  const match = findNearestDatum(ms, ms.canvas.width / 2, ms.canvas.height / 2, Number.POSITIVE_INFINITY);
+  const match = findNearestDatum(ms, ms.width / 2, ms.height / 2, Number.POSITIVE_INFINITY);
   const pinned = ms.data.find((datum) => datum.label === ms.pinnedLabel);
   if (!pinned || !ms.tooltip) return;
 
-  const [px, py] = lonLatToPixel(pinned.lon, pinned.lat, ms.zoom, ms.center[0], ms.center[1], ms.canvas.width, ms.canvas.height);
+  const [px, py] = lonLatToPixel(pinned.lon, pinned.lat, ms.zoom, ms.center[0], ms.center[1], ms.width, ms.height);
   const vSpan = ms.vMax - ms.vMin || 1;
   const t = Math.max(0, Math.min(1, (pinned.value - ms.vMin) / vSpan));
   showMapTooltip(ms, {
@@ -398,8 +401,9 @@ function tickZoom(ms: TileMapState): void {
 // ── Composite render ─────────────────────────────────────────────────────────
 
 function renderTileMap(ms: TileMapState): void {
-  const { ctx, canvas } = ms;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const { ctx } = ms;
+  ctx.setTransform(ms.dpr, 0, 0, ms.dpr, 0, 0);
+  ctx.clearRect(0, 0, ms.width, ms.height);
   drawTiles(ms);
   drawDataOverlay(ms);
   refreshPinnedTooltip(ms);
@@ -443,7 +447,7 @@ function setupTileMap(
   const desiredW = rect.width || 520;
   const desiredH = rect.height || 350;
   if (old && old.canvas.parentElement === container &&
-      old.canvas.width === desiredW && old.canvas.height === desiredH) {
+      old.width === desiredW && old.height === desiredH) {
     // Just update data overlay and re-render — keep existing canvas & listeners
     old.data = dataPoints;
     old.colorLow = colorLow;
@@ -462,8 +466,9 @@ function setupTileMap(
   if (pos === 'static') container.style.position = 'relative';
 
   const canvas = document.createElement('canvas');
-  canvas.width = desiredW;
-  canvas.height = desiredH;
+  const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 2), 3);
+  canvas.width = Math.floor(desiredW * dpr);
+  canvas.height = Math.floor(desiredH * dpr);
   canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;cursor:grab;z-index:5;border-radius:inherit;';
   canvas.setAttribute('data-uc-tilemap', 'true');
   container.querySelectorAll('[data-uc-tilemap]').forEach(el => el.remove());
@@ -471,7 +476,7 @@ function setupTileMap(
   const ctx = canvas.getContext('2d')!;
 
   const ms: TileMapState = {
-    canvas, ctx,
+    canvas, ctx, width: desiredW, height: desiredH, dpr,
     center: mapCfg.center ?? [10, 25],
     zoom: mapCfg.zoom ?? 2,
     tileUrl: mapCfg.tileUrl ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -632,16 +637,16 @@ function setupTileMap(
     const nz = Math.max(ms.minZoom, Math.min(ms.maxZoom, ms.zoom + delta));
     const r = canvas.getBoundingClientRect();
     const mx = e.clientX - r.left, my = e.clientY - r.top;
-    const [lBefore, tBefore] = pixelToLonLat(mx, my, ms.zoom, ms.center[0], ms.center[1], canvas.width, canvas.height);
+    const [lBefore, tBefore] = pixelToLonLat(mx, my, ms.zoom, ms.center[0], ms.center[1], ms.width, ms.height);
     ms.zoom = nz;
-    const [lAfter, tAfter] = pixelToLonLat(mx, my, ms.zoom, ms.center[0], ms.center[1], canvas.width, canvas.height);
+    const [lAfter, tAfter] = pixelToLonLat(mx, my, ms.zoom, ms.center[0], ms.center[1], ms.width, ms.height);
     ms.center = [ms.center[0] - (lAfter - lBefore), Math.max(-85, Math.min(85, ms.center[1] - (tAfter - tBefore)))];
     renderTileMap(ms);
   };
   const onDbl = (e: MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
     const r = canvas.getBoundingClientRect();
-    const [lon, lat] = pixelToLonLat(e.clientX - r.left, e.clientY - r.top, ms.zoom, ms.center[0], ms.center[1], canvas.width, canvas.height);
+    const [lon, lat] = pixelToLonLat(e.clientX - r.left, e.clientY - r.top, ms.zoom, ms.center[0], ms.center[1], ms.width, ms.height);
     ms.center = [lon, lat];
     animateZoom(ms, Math.min(ms.maxZoom, Math.round(ms.zoom) + 1));
   };

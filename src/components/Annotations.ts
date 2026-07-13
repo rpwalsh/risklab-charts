@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Annotations Component
 // Renders overlaid annotations: labels, lines, rects, circles, arrows,
 // callouts, images, and fully custom elements onto the chart surface.

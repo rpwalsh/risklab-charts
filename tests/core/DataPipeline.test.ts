@@ -41,13 +41,13 @@ describe('DataPipeline', () => {
       expect(toNumber(d)).toBe(d.getTime());
     });
 
-    it('should return 0 for null/undefined', () => {
-      expect(toNumber(null as any)).toBe(0);
-      expect(toNumber(undefined as any)).toBe(0);
+    it('should preserve null/undefined as invalid data', () => {
+      expect(toNumber(null as any)).toBeNaN();
+      expect(toNumber(undefined as any)).toBeNaN();
     });
 
-    it('should return 0 for non-numeric strings', () => {
-      expect(toNumber('hello')).toBe(0);
+    it('should preserve non-numeric strings as invalid data', () => {
+      expect(toNumber('hello')).toBeNaN();
     });
   });
 
@@ -100,6 +100,30 @@ describe('DataPipeline', () => {
         expect((d as any).yNum).toBeTypeOf('number');
       }
     });
+
+    it('sorts continuous data before applying decimation', () => {
+      const pipeline = new DataPipeline();
+      const data = Array.from({ length: 40 }, (_, index) => ({
+        x: 39 - index,
+        y: Math.sin(index / 3),
+      }));
+      const result = pipeline.process([
+        makeSeries({ data, decimation: { enabled: true, threshold: 10, algorithm: 'lttb' } }),
+      ], baseConfig);
+      const points = result[0]!.processedData;
+      expect(points).toHaveLength(10);
+      for (let index = 1; index < points.length; index += 1) {
+        expect(points[index]!.xNum).toBeGreaterThanOrEqual(points[index - 1]!.xNum);
+      }
+    });
+
+    it('keeps invalid values as explicit gaps', () => {
+      const pipeline = new DataPipeline();
+      const result = pipeline.process([
+        makeSeries({ data: [{ x: 1, y: 2 }, { x: 2, y: 'not-observed' }] }),
+      ], baseConfig);
+      expect(result[0]!.processedData[1]!.yNum).toBeNaN();
+    });
   });
 
   // ─── Stacking ───────────────────────────────────────────────────────
@@ -128,6 +152,28 @@ describe('DataPipeline', () => {
         expect(p1?.y0).toBe(10);
         expect(p1?.y1).toBe(15);
       }
+    });
+
+    it('stacks positive and negative values independently from zero', () => {
+      const pipeline = new DataPipeline();
+      const result = pipeline.process([
+        makeSeries({ id: 'a', type: 'stackedArea', stackGroup: 'g', data: [{ x: 1, y: 10 }] }),
+        makeSeries({ id: 'b', type: 'stackedArea', stackGroup: 'g', data: [{ x: 1, y: -4 }] }),
+        makeSeries({ id: 'c', type: 'stackedArea', stackGroup: 'g', data: [{ x: 1, y: -3 }] }),
+      ], baseConfig);
+      const b = result[1]!.processedData[0]!;
+      const c = result[2]!.processedData[0]!;
+      expect([b.y0, b.y1]).toEqual([0, -4]);
+      expect([c.y0, c.y1]).toEqual([-4, -7]);
+    });
+
+    it('does not mutate caller-owned series or point arrays', () => {
+      const pipeline = new DataPipeline();
+      const input = [makeSeries({ stackGroup: 'g' })];
+      const data = input[0]!.data;
+      pipeline.process(input, baseConfig);
+      expect(input[0]!.data).toBe(data);
+      expect(input[0]!.data[0]).not.toHaveProperty('xNum');
     });
   });
 

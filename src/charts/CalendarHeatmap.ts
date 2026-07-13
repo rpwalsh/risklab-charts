@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Calendar Heatmap Chart
 // GitHub-style contribution graph with weekly columns × daily rows
 // Supports multi-year, custom color scales, month/weekday labels,

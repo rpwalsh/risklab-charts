@@ -1,7 +1,7 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Tilemap Chart
 // Grid of tiles (hexagons, circles, or squares) colored by value.
-// Highcharts charges for this as "tilemap" series — free in RiskLab Charts.
+// commercial charting charges for this as "tilemap" series — free in RiskLab Charts.
 // Use cases: geographic data grids, calendar tiles, election maps.
 // ============================================================================
 

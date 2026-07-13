@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Core Type System
 // Meta Level 6 Architecture: Every type is composable, extensible, serializable
 // ============================================================================
@@ -608,8 +608,13 @@ export interface TooltipConfig {
   showDelay?: number;
   /** Delay before hiding (ms) */
   hideDelay?: number;
-  /** Custom HTML renderer */
+  /** Custom formatter. Output is treated as text unless allowHTML is explicit. */
   formatter?: (context: TooltipContext) => string;
+  /**
+   * Render formatter and format-template markup as HTML. Disabled by default.
+   * Only enable for application-owned, trusted configuration.
+   */
+  allowHTML?: boolean;
   /** Use React/JSX renderer (in React adapter) */
   reactRenderer?: boolean;
   /** Header format */
@@ -1154,6 +1159,14 @@ export interface Graph3DWalkConfig {
   count?: number;
   speed?: number;
   trailLength?: number;
+  /** Completed display paths. The renderer follows these node ids verbatim. */
+  paths?: Array<{
+    id: string;
+    label?: string;
+    nodeIds: string[];
+    color?: ColorValue;
+    speed?: number;
+  }>;
 }
 
 export interface Graph3DConfig {
@@ -1236,6 +1249,65 @@ export interface OpenTopoConfig {
 
 /** Configuration for the terrain3d WebGL chart type. */
 export interface Terrain3DConfig {
+  /** Keep the existing terrain mesh when only camera-coupled overlays change. */
+  preserveGeometryOnUpdate?: boolean;
+  /** Optional overlay node for an operator-selected follow camera. */
+  focusNodeId?: string;
+  /** Optional overlay node whose heading drives a nose-forward, downward flight camera. */
+  firstPersonNodeId?: string;
+  /** Duration used to tween camera-coupled overlay data between display samples. */
+  overlayTransitionMs?: number;
+  /** Show the raw terrain coordinate tooltip. */
+  pointTooltip?: boolean;
+  /** Display semantics for the three rendered dimensions. */
+  axes?: {
+    x: { label: string; unit?: string; min?: number; max?: number; tickCount?: number; color?: string };
+    y: { label: string; unit?: string; min?: number; max?: number; tickCount?: number; color?: string };
+    z: { label: string; unit?: string; min?: number; max?: number; tickCount?: number; color?: string };
+  };
+  /** Camera-coupled display annotations rendered in the terrain coordinate system. */
+  overlays?: {
+    nodes?: Array<{
+      id: string;
+      x: number;
+      y: number;
+      z: number;
+      label?: string;
+      detail?: string;
+      color?: string;
+      size?: number;
+      data?: Record<string, string | number | boolean>;
+    }>;
+    edges?: Array<{
+      source: string;
+      target: string;
+      color?: string;
+      width?: number;
+      dashed?: boolean;
+    }>;
+    zones?: Array<{
+      id: string;
+      points: Array<{ x: number; y: number; z: number }>;
+      color?: string;
+      label?: string;
+      kind?: 'polygon' | 'rfBubble' | 'rfRings';
+      center?: { x: number; y: number; z: number };
+      radiusX?: number;
+      radiusY?: number;
+      radiusZ?: number;
+      intensity?: number;
+      confidence?: number;
+      opacity?: number;
+    }>;
+    tracks?: Array<{
+      id: string;
+      points: Array<{ x: number; y: number; z: number }>;
+      color?: string;
+      width?: number;
+      dashed?: boolean;
+      label?: string;
+    }>;
+  };
   /**
    * Width of the elevation grid in vertices.  Supply this when data is a
    * structured row-major heightmap (e.g. GeoTIFF-derived array).
@@ -1252,6 +1324,10 @@ export interface Terrain3DConfig {
    * - 'gray': monochrome
    */
   colormap?: 'hypsometric' | 'viridis' | 'thermal' | 'gray';
+  /** Theme-provided elevation color ramp, sampled from low to high. */
+  colorRamp?: string[];
+  /** Sea-level surface derived from elevation values. */
+  water?: { enabled?: boolean; seaLevel?: number; deepColor?: string; shallowColor?: string };
   /** Vertical exaggeration factor (default 1). Try 2–5 for subtle terrain. */
   exaggeration?: number;
   /** Enable Lambertian shading (default true). */
@@ -1271,6 +1347,8 @@ export interface Terrain3DConfig {
   wireframe?: boolean;
   /** Wireframe colour (hex). Default '#ffffff'. */
   wireframeColor?: string;
+  /** Wireframe opacity from 0 to 1. Default 0.18. */
+  wireframeOpacity?: number;
   /** Canvas background colour (hex). Default '#040b15'. */
   backgroundColor?: string;
   /** Initial orbit azimuth in radians. Overrides auto-fit default when provided. */
@@ -1332,6 +1410,12 @@ export interface Terrain3DConfig {
 
 /** Configuration for the synthetic mission-grade 3-D demo surfaces. */
 export interface Challenge3DConfig {
+  /** Display-contract semantics for the rendered x/y/z dimensions. */
+  axes?: {
+    x: { label: string; unit?: string };
+    y: { label: string; unit?: string };
+    z: { label: string; unit?: string };
+  };
   /** Initial orbit azimuth in radians. */
   initialAzimuth?: number;
   /** Initial orbit polar angle in radians. */

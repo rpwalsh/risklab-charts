@@ -1,7 +1,7 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Navigator Chart
 // Mini overview chart with draggable handles for range selection.
-// Mirrors Highcharts Stock's navigator. Used with Engine's zoomToRange().
+// Mirrors commercial charting Stock's navigator. Used with Engine's zoomToRange().
 // ============================================================================
 
 import type { BaseRenderer } from '../../renderers/BaseRenderer';

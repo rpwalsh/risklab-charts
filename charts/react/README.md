@@ -53,5 +53,5 @@ import { createTheme } from "@risklab/charts";
 import { applyThemeCSSVars } from "@risklab/charts/css-vars";
 ```
 
-Use `@risklab/charts/mui` when you already have a Material UI theme object and
-want a direct token bridge.
+Use `@risklab/charts/theme-object` when a host application already has a theme
+object and needs a direct token bridge.

@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Smith Chart
 // Impedance / RF engineering chart — polar display of complex impedance
 // Used by radio engineers, antenna designers, microwave engineers

@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { RiskLab } from '../../src/sdk/RiskLab';
 
 // ── Existence / shape ─────────────────────────────────────────────────────────
@@ -58,12 +58,6 @@ describe('RiskLab namespace — shape', () => {
     expect(typeof RiskLab.data.sse).toBe('function');
   });
 
-  it('exposes adapters sub-namespace', () => {
-    expect(typeof RiskLab.adapters).toBe('object');
-    expect(typeof RiskLab.adapters.angular).toBe('object');
-    expect(typeof RiskLab.adapters.svelte).toBe('object');
-    expect(typeof RiskLab.adapters.lit).toBe('object');
-  });
 });
 
 // ── Fluent builder integration ────────────────────────────────────────────────
@@ -177,24 +171,3 @@ describe('RiskLab.pivot integration', () => {
   });
 });
 
-// ── Adapter source generators ─────────────────────────────────────────────────
-
-describe('RiskLab.adapters source generators', () => {
-  it('angular.componentSource returns TypeScript string', () => {
-    const src = RiskLab.adapters.angular.componentSource();
-    expect(typeof src).toBe('string');
-    expect(src).toContain('@Component');
-  });
-
-  it('svelte.componentSource returns .svelte source', () => {
-    const src = RiskLab.adapters.svelte.componentSource();
-    expect(typeof src).toBe('string');
-    expect(src).toContain('<script');
-  });
-
-  it('lit.componentSource returns LitElement source', () => {
-    const src = RiskLab.adapters.lit.componentSource();
-    expect(typeof src).toBe('string');
-    expect(src).toContain('LitElement');
-  });
-});

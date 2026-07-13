@@ -1,8 +1,8 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Bell Curve (Normal Distribution) Chart
 // Renders a probability density curve (PDF) from raw data or explicit
 // mean/sigma parameters. Includes optional histogram overlay.
-// Equivalent to Highcharts' "bellcurve" series — free in RiskLab Charts.
+// Equivalent to commercial charting' "bellcurve" series — free in RiskLab Charts.
 // ============================================================================
 
 import type { BaseRenderer } from '../renderers/BaseRenderer';

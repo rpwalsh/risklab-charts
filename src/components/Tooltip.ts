@@ -1,10 +1,11 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Tooltip Component
 // Shared, pinnable, custom-formatted tooltips
 // ============================================================================
 
 import type { BaseRenderer } from '../renderers/BaseRenderer';
 import type { TooltipConfig, ChartState, ThemeConfig, DataPoint, SeriesConfig } from '../core/types';
+import { escapeHtml, safeColor } from '../utils/sanitize';
 
 export interface TooltipData {
   x: number;
@@ -121,16 +122,17 @@ export function createTooltipHTML(
       x: tooltipData[0]?.point.x,
       chart: null,
     };
-    return config.formatter(context);
+    const formatted = config.formatter(context);
+    return config.allowHTML === true ? formatted : `<div>${escapeHtml(formatted)}</div>`;
   }
 
-  const bg = (config.backgroundColor as string) ?? (theme.tooltip.backgroundColor as string) ?? '#fff';
-  const border = (config.borderColor as string) ?? (theme.tooltip.borderColor as string) ?? '#e5e7eb';
-  const textColor = (config.style?.color as string) ?? (theme.tooltip.textColor as string) ?? '#1f2937';
-  const fontFamily = config.style?.fontFamily ?? theme.fontFamily;
-  const fontSize = config.style?.fontSize ?? 12;
-  const radius = config.borderRadius ?? 6;
-  const borderWidth = config.borderWidth ?? 1;
+  const bg = safeColor(String(config.backgroundColor ?? theme.tooltip.backgroundColor ?? '#fff'), '#fff');
+  const border = safeColor(String(config.borderColor ?? theme.tooltip.borderColor ?? '#e5e7eb'), '#e5e7eb');
+  const textColor = safeColor(String(config.style?.color ?? theme.tooltip.textColor ?? '#1f2937'), '#1f2937');
+  const fontFamily = safeCssText(config.style?.fontFamily ?? theme.fontFamily, 'sans-serif');
+  const fontSize = finiteRange(config.style?.fontSize, 12, 8, 48);
+  const radius = finiteRange(config.borderRadius, 6, 0, 40);
+  const borderWidth = finiteRange(config.borderWidth, 1, 0, 8);
 
   // Sort items
   const items = [...tooltipData];
@@ -144,11 +146,11 @@ export function createTooltipHTML(
   const xFormatted = applyFormat(config.headerFormat, {
     'point.key': escapeHtml(formatValue(first.point.x)),
     'point.x': escapeHtml(formatValue(first.point.x)),
-  }) ?? `<span style="font-weight:600">${escapeHtml(formatValue(first.point.x))}</span>`;
+  }, config.allowHTML === true) ?? `<span style="font-weight:600">${escapeHtml(formatValue(first.point.x))}</span>`;
 
   let rows = '';
   for (const td of items) {
-    const color = (td.series.color as string) ?? '#4F46E5';
+    const color = safeColor(String(td.series.color ?? '#4F46E5'), '#4F46E5');
     const yFmt = formatValue(td.point.y);
 
     if (isOHLC) {
@@ -170,7 +172,7 @@ export function createTooltipHTML(
         'series.color': color,
         'point.y': escapeHtml(yFmt),
         'point.x': escapeHtml(formatValue(td.point.x)),
-      });
+      }, config.allowHTML === true);
 
       if (pointRow) {
         rows += `<tr><td colspan="3">${pointRow}</td></tr>`;
@@ -187,8 +189,9 @@ export function createTooltipHTML(
   }
 
   // Footer
-  const footer = config.footerFormat
-    ? `<tr><td colspan="3" style="padding-top:4px;color:#9ca3af;font-size:${fontSize - 1}px">${escapeHtml(config.footerFormat)}</td></tr>`
+  const footerContent = applyFormat(config.footerFormat, {}, config.allowHTML === true);
+  const footer = footerContent
+    ? `<tr><td colspan="3" style="padding-top:4px;color:#9ca3af;font-size:${fontSize - 1}px">${footerContent}</td></tr>`
     : '';
 
   return `<div style="
@@ -215,14 +218,14 @@ export function createTooltipHTML(
   </div>`;
 }
 
-/** Escape a string for safe interpolation into HTML content or attribute values. */
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+function safeCssText(value: unknown, fallback: string): string {
+  const text = String(value ?? '').trim();
+  return text && !/[;{}<>\\]/.test(text) ? escapeHtml(text) : fallback;
+}
+
+function finiteRange(value: unknown, fallback: number, min: number, max: number): number {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.min(max, Math.max(min, numeric)) : fallback;
 }
 
 /** Format a raw value for display — numbers get locale formatting */
@@ -241,8 +244,13 @@ function formatValue(v: unknown): string {
 }
 
 /** Apply a format template like "{series.name}: {point.y}" */
-function applyFormat(template: string | undefined, vars: Record<string, string>): string | undefined {
+function applyFormat(
+  template: string | undefined,
+  vars: Record<string, string>,
+  allowHTML = false,
+): string | undefined {
   if (!template) return undefined;
-  return template.replace(/\{([^}]+)\}/g, (_, key) => vars[key] ?? '');
+  const source = allowHTML ? template : escapeHtml(template);
+  return source.replace(/\{([^}]+)\}/g, (_, key) => vars[key] ?? '');
 }
 

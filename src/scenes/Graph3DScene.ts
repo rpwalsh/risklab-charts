@@ -51,6 +51,9 @@ interface WalkerState {
   speed: number;
   color: [number, number, number, number];
   size: number;
+  pathId?: string;
+  pathIndices?: number[];
+  pathCursor?: number;
 }
 
 interface TrailState {
@@ -264,15 +267,18 @@ void main() {
 `;
 
 const POINT_FRAGMENT_SHADER = `
-precision mediump float;
+precision highp float;
 varying vec4 vColor;
 void main() {
   vec2 uv = gl_PointCoord * 2.0 - 1.0;
-  float dist = dot(uv, uv);
-  if (dist > 1.0) discard;
-  float glow = smoothstep(1.0, 0.0, dist);
-  float core = smoothstep(0.42, 0.0, dist);
-  gl_FragColor = vec4(vColor.rgb, vColor.a * max(glow * 0.62, core));
+  float radius = length(uv);
+  if (radius > 1.0) discard;
+  float halo = pow(max(0.0, 1.0 - radius), 2.25);
+  float ring = smoothstep(0.68, 0.58, radius) * smoothstep(0.42, 0.54, radius);
+  float core = smoothstep(0.34, 0.0, radius);
+  float hot = smoothstep(0.12, 0.0, radius);
+  vec3 light = vColor.rgb * (0.72 + halo * 0.9 + ring * 0.7) + vec3(hot * 0.85);
+  gl_FragColor = vec4(light, vColor.a * max(halo * 0.72, max(ring * 0.8, core)));
 }
 `;
 
@@ -283,7 +289,6 @@ export const GRAPH_3D_CHART_TYPES = [
   'graphManifold3d',
   'anomalyDetectionField3d',
   'eventSequenceMap3d',
-  'transactionFlowAnomaly3d',
   'decisionAdvantage3d',
   'airGappedExecution3d',
   'forecastWeightedControl3d',
@@ -295,9 +300,11 @@ export class Graph3DScene {
   private readonly host: HTMLElement;
   private readonly bus: EventBus;
   private readonly root: HTMLDivElement;
+  private readonly backdrop: HTMLDivElement;
   private readonly canvas: HTMLCanvasElement;
   private readonly labelLayer: HTMLDivElement;
   private readonly card: HTMLDivElement;
+  private readonly pathControls: HTMLDivElement;
   private fallback: HTMLDivElement | null = null;
   private gl: WebGLRenderingContext | null = null;
   private linesProgram: GLProgramBundle | null = null;
@@ -330,10 +337,12 @@ export class Graph3DScene {
   private lastInteractionAt = 0;
   private animationFrame = 0;
   private lastFrameAt = 0;
+  private readonly frameIntervalMs = 1000 / 60;
   private signature = '';
   private orbit = { theta: 0.86, phi: 1.1, distance: 18 };
   private target: Vec3 = [0, 0, 0];
   private desiredTarget: Vec3 = [0, 0, 0];
+  private selectedPathId = '';
   private projectedNodes: Array<{ x: number; y: number; visible: boolean; depth: number }> = [];
 
   constructor(options: Graph3DSceneOptions) {
@@ -344,18 +353,30 @@ export class Graph3DScene {
     this.root.style.cssText = [
       'position:absolute',
       'overflow:hidden',
-      'border-radius:16px',
+      'border-radius:18px',
       'z-index:12',
       'touch-action:none',
       'user-select:none',
-      'background:radial-gradient(circle at 50% 38%, rgba(22,34,58,0.92), rgba(6,12,24,0.98) 72%)',
+      'background:radial-gradient(circle at 50% 42%, rgba(22,74,112,0.96), rgba(5,12,26,0.99) 72%)',
       'border:1px solid rgba(148,163,184,0.08)',
       'box-shadow:inset 0 0 0 1px rgba(148,163,184,0.05)',
     ].join(';');
 
+    this.backdrop = document.createElement('div');
+    this.backdrop.setAttribute('aria-hidden', 'true');
+    this.backdrop.style.cssText = [
+      'position:absolute',
+      'inset:0',
+      'pointer-events:none',
+      'background:radial-gradient(circle at 50% 48%,rgba(34,211,238,.15),transparent 34%),repeating-linear-gradient(128deg,transparent 0 34px,rgba(96,165,250,.07) 35px 36px),linear-gradient(180deg,rgba(45,89,132,.2),transparent 48%)',
+      'box-shadow:inset 0 0 90px rgba(1,6,18,.78),inset 0 1px rgba(186,230,253,.13)',
+      'z-index:0',
+    ].join(';');
+    this.root.appendChild(this.backdrop);
+
     this.canvas = document.createElement('canvas');
     this.canvas.setAttribute('data-uc-graph3d', 'true');
-    this.canvas.style.cssText = 'display:block;width:100%;height:100%;cursor:grab;background:transparent;';
+    this.canvas.style.cssText = 'position:relative;z-index:1;display:block;width:100%;height:100%;cursor:grab;background:transparent;filter:saturate(1.18) contrast(1.06);';
     this.root.appendChild(this.canvas);
 
     this.labelLayer = document.createElement('div');
@@ -387,6 +408,11 @@ export class Graph3DScene {
     ].join(';');
     this.root.appendChild(this.card);
 
+    this.pathControls = document.createElement('div');
+    this.pathControls.setAttribute('data-graph3d-paths', 'true');
+    this.pathControls.style.cssText = 'position:absolute;left:12px;top:12px;z-index:21;display:flex;gap:6px;flex-wrap:wrap;max-width:55%;';
+    this.root.appendChild(this.pathControls);
+
     this.attachEvents();
     this.host.appendChild(this.root);
     this.initGL();
@@ -396,18 +422,202 @@ export class Graph3DScene {
     this.theme = ctx.theme;
     this.chartConfig = ctx.config;
     this.chartState = ctx.state;
-    this.sceneConfig = ctx.config.graph3d ?? {};
+    const requestedSceneConfig = ctx.config.graph3d ?? {};
+    const isDecisionAdvantage = ctx.config.series.some((series) => series.type === 'decisionAdvantage3d');
+    const isDecisionField = isDecisionAdvantage || ctx.config.series.some((series) => series.type === 'forecastWeightedControl3d');
+    const isAdaptiveFabric = ctx.config.series.some((series) => series.type === 'adaptiveFabricEvolution3d');
+    const isAnomalyField = ctx.config.series.some((series) => series.type === 'anomalyDetectionField3d');
+    const isAirGappedExecution = ctx.config.series.some((series) => series.type === 'airGappedExecution3d');
+    if (isDecisionField) {
+      const optionGroups = new Map<number, Array<{ id: string; dimension: string; rank: number; color?: ColorValue }>>();
+      const dimensionGroups = new Map<string, Array<{ id: string; option: number; rank: number; color?: ColorValue }>>();
+      ctx.series.flatMap((series) => series.data).forEach((point) => {
+        const meta = asRecord(point.meta);
+        const option = readNumber(meta.option);
+        const dimension = readString(meta.dimension);
+        const rank = readNumber(meta.rank) ?? option ?? Number.MAX_SAFE_INTEGER;
+        const id = point.id ? String(point.id) : undefined;
+        if (option == null || !dimension || !id) return;
+        const optionNodes = optionGroups.get(option) ?? [];
+        optionNodes.push({ id, dimension, rank, color: point.color });
+        optionGroups.set(option, optionNodes);
+        const dimensionNodes = dimensionGroups.get(dimension) ?? [];
+        dimensionNodes.push({ id, option, rank, color: point.color });
+        dimensionGroups.set(dimension, dimensionNodes);
+      });
+      const decisionLinks: NonNullable<Graph3DConfig['links']> = [];
+      optionGroups.forEach((nodes) => {
+        if (isDecisionAdvantage && (nodes[0]?.rank ?? Number.MAX_SAFE_INTEGER) > 4) return;
+        nodes.forEach((node, index) => decisionLinks.push({
+          source: node.id,
+          target: nodes[(index + 1) % nodes.length]!.id,
+          weight: 0.82,
+          kind: 'option-profile',
+          color: node.color,
+        }));
+      });
+      dimensionGroups.forEach((nodes) => {
+        const comparisonNodes = isDecisionAdvantage
+          ? nodes.sort((a, b) => a.rank - b.rank).slice(0, 3)
+          : nodes.sort((a, b) => a.option - b.option);
+        comparisonNodes.slice(1).forEach((node, index) => decisionLinks.push({
+          source: comparisonNodes[index]!.id,
+          target: node.id,
+          weight: 0.46,
+          kind: 'dimension-comparison',
+          color: node.color,
+        }));
+      });
+      this.sceneConfig = {
+        ...requestedSceneConfig,
+        layout: 'fixed',
+        autoRotate: false,
+        nodeBaseSize: 10,
+        edgeOpacity: 0.46,
+        initialDistance: isDecisionAdvantage ? 8.5 : 9.5,
+        links: decisionLinks,
+        walks: {
+          ...requestedSceneConfig.walks,
+          enabled: true,
+          count: 2,
+          speed: 0.18,
+          trailLength: 64,
+        },
+      };
+    } else if (isAnomalyField) {
+      const allPoints = ctx.series.flatMap((series) => series.data);
+      const baseline = allPoints.filter((point) => asRecord(point.meta).anomaly !== true && point.id);
+      const anomalies = allPoints.filter((point) => asRecord(point.meta).anomaly === true && point.id);
+      const centerX = baseline.reduce((sum, point) => sum + Number(point.x ?? 0), 0) / Math.max(1, baseline.length);
+      const centerY = baseline.reduce((sum, point) => sum + Number(point.y ?? 0), 0) / Math.max(1, baseline.length);
+      const boundary = [...baseline]
+        .sort((a, b) => Math.hypot(Number(b.x ?? 0) - centerX, Number(b.y ?? 0) - centerY) - Math.hypot(Number(a.x ?? 0) - centerX, Number(a.y ?? 0) - centerY))
+        .slice(0, 32)
+        .sort((a, b) => Math.atan2(Number(a.y ?? 0) - centerY, Number(a.x ?? 0) - centerX) - Math.atan2(Number(b.y ?? 0) - centerY, Number(b.x ?? 0) - centerX));
+      const anomalyLinks: NonNullable<Graph3DConfig['links']> = [];
+      boundary.forEach((point, index) => anomalyLinks.push({
+        source: String(point.id),
+        target: String(boundary[(index + 1) % boundary.length]!.id),
+        weight: 0.48,
+        kind: 'baseline-envelope',
+        color: point.color,
+      }));
+      anomalies.forEach((point) => {
+        const nearest = baseline.reduce<DataPoint | undefined>((best, candidate) => {
+          if (!best) return candidate;
+          const distance = Math.hypot(Number(point.x ?? 0) - Number(candidate.x ?? 0), Number(point.y ?? 0) - Number(candidate.y ?? 0), Number(point.z ?? 0) - Number(candidate.z ?? 0));
+          const bestDistance = Math.hypot(Number(point.x ?? 0) - Number(best.x ?? 0), Number(point.y ?? 0) - Number(best.y ?? 0), Number(point.z ?? 0) - Number(best.z ?? 0));
+          return distance < bestDistance ? candidate : best;
+        }, undefined);
+        if (nearest?.id) anomalyLinks.push({
+          source: String(nearest.id),
+          target: String(point.id),
+          weight: readNumber(asRecord(point.meta).score) ?? 0.5,
+          kind: 'anomaly-deviation',
+          color: point.color,
+        });
+      });
+      this.sceneConfig = {
+        ...requestedSceneConfig,
+        layout: 'fixed',
+        autoRotate: false,
+        initialDistance: 4.8,
+        nodeBaseSize: 11,
+        edgeOpacity: 0.42,
+        links: anomalyLinks,
+        walks: { ...requestedSceneConfig.walks, enabled: false, count: 0 },
+      };
+    } else if (isAirGappedExecution) {
+      const layerOrder = ['Ingest', 'Model', 'Detect', 'Decide', 'Control'];
+      const layerGroups = new Map<string, DataPoint[]>();
+      ctx.series.flatMap((series) => series.data).forEach((point) => {
+        const layer = readString(asRecord(point.meta).layer) ?? 'Execution';
+        const row = layerGroups.get(layer) ?? [];
+        row.push(point);
+        layerGroups.set(layer, row);
+      });
+      layerGroups.forEach((row) => row.sort((a, b) => Number(a.x ?? 0) - Number(b.x ?? 0)));
+      const secureLinks: NonNullable<Graph3DConfig['links']> = [];
+      layerOrder.forEach((layer, layerIndex) => {
+        const row = layerGroups.get(layer) ?? [];
+        row.slice(1).forEach((point, index) => {
+          const source = row[index];
+          if (!source?.id || !point.id) return;
+          secureLinks.push({ source: String(source.id), target: String(point.id), weight: 0.46, kind: 'isolated-lane', color: point.color });
+        });
+        if (layerIndex === 0) return;
+        const prior = layerGroups.get(layerOrder[layerIndex - 1]!) ?? [];
+        row.forEach((point, index) => {
+          const source = prior[index];
+          if (!source?.id || !point.id) return;
+          const resilience = readNumber(asRecord(point.meta).resilience) ?? 80;
+          secureLinks.push({ source: String(source.id), target: String(point.id), weight: resilience / 100, kind: 'verified-transfer', color: point.color });
+        });
+      });
+      this.sceneConfig = {
+        ...requestedSceneConfig,
+        layout: 'fixed',
+        autoRotate: false,
+        initialDistance: 7.2,
+        nodeBaseSize: 11,
+        edgeOpacity: 0.5,
+        links: secureLinks,
+        walks: { ...requestedSceneConfig.walks, enabled: true, count: 2, speed: 0.16, trailLength: 58 },
+      };
+    } else if (isAdaptiveFabric) {
+      this.sceneConfig = {
+        ...requestedSceneConfig,
+        layout: 'fixed',
+        autoRotate: false,
+        initialDistance: 7.6,
+        nodeBaseSize: 13,
+        edgeOpacity: 0.46,
+        walks: {
+          ...requestedSceneConfig.walks,
+          enabled: true,
+          count: 2,
+          speed: 0.2,
+          trailLength: 72,
+        },
+      };
+    } else {
+      this.sceneConfig = requestedSceneConfig;
+    }
+    this.renderPathControls();
     this.applyThemeStyles();
     this.seriesId = ctx.series[0]?.id ?? '';
     this.resize(ctx.state.chartArea);
 
     const nextSignature = JSON.stringify({
       ids: ctx.series.flatMap((series) => series.data.map((point) => point.id ?? point.label ?? point.x)),
-      links: ctx.config.graph3d?.links?.length ?? 0,
+      links: this.sceneConfig.links?.length ?? 0,
       size: ctx.series.reduce((sum, series) => sum + series.data.length, 0),
     });
 
     this.data = normalizeGraph3DSeries(ctx.series, this.sceneConfig, ctx.theme.palette);
+    if (isAdaptiveFabric) {
+      const stageCounts = new Map<string, number>();
+      this.data.nodes.forEach((node) => {
+        const stage = readString(asRecord(node.point.meta).layer) ?? 'state';
+        const ordinal = (stageCounts.get(stage) ?? 0) + 1;
+        stageCounts.set(stage, ordinal);
+        const publicStage = stage === 'input' ? 'Input Evidence' : stage === 'fabric' ? 'Adaptive State' : stage === 'decision' ? 'Decision State' : 'State';
+        node.label = `${publicStage} ${ordinal}`;
+      });
+    } else if (isAnomalyField) {
+      let baselineOrdinal = 0;
+      let anomalyOrdinal = 0;
+      this.data.nodes.forEach((node) => {
+        const meta = asRecord(node.point.meta);
+        if (meta.anomaly === true) {
+          anomalyOrdinal += 1;
+          node.label = `Anomaly ${anomalyOrdinal} · ${Math.round((readNumber(meta.score) ?? 0) * 100)}%`;
+        } else {
+          baselineOrdinal += 1;
+          node.label = `Baseline sample ${baselineOrdinal}`;
+        }
+      });
+    }
     this.adjacency = buildAdjacency(this.data.nodes.length, this.data.links);
 
     if (nextSignature !== this.signature) {
@@ -442,11 +652,10 @@ export class Graph3DScene {
     }
 
     this.updateCard();
-
-    if (!this.animationFrame) {
-      this.lastFrameAt = performance.now();
-      this.animationFrame = requestAnimationFrame(this.frame);
-    }
+    // Paint synchronously on mount. A chart must never require a pointer event
+    // to reveal its first frame; rAF is reserved for subsequent animation.
+    this.renderFrame(performance.now() * 0.001, 0);
+    this.requestRender();
   }
 
   resize(chartArea: Rect): void {
@@ -458,7 +667,7 @@ export class Graph3DScene {
 
     const width = Math.max(1, Math.floor(chartArea.width));
     const height = Math.max(1, Math.floor(chartArea.height));
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = graphPixelRatio();
 
     if (this.canvas.width !== Math.floor(width * dpr) || this.canvas.height !== Math.floor(height * dpr)) {
       this.canvas.width = Math.floor(width * dpr);
@@ -501,11 +710,28 @@ export class Graph3DScene {
   }
 
   private readonly frame = (time: number) => {
-    this.animationFrame = requestAnimationFrame(this.frame);
+    this.animationFrame = 0;
+    if (time - this.lastFrameAt < this.frameIntervalMs) {
+      if (this.shouldAnimate()) this.animationFrame = requestAnimationFrame(this.frame);
+      return;
+    }
     const dt = Math.min(0.05, Math.max(0.001, (time - this.lastFrameAt) / 1000));
     this.lastFrameAt = time;
     this.renderFrame(time * 0.001, dt);
+    if (this.shouldAnimate()) this.animationFrame = requestAnimationFrame(this.frame);
   };
+
+  private shouldAnimate(): boolean {
+    return this.sceneConfig.autoRotate === true
+      || this.sceneConfig.layout === 'force'
+      || this.sceneConfig.walks?.enabled === true;
+  }
+
+  private requestRender(): void {
+    if (this.animationFrame) return;
+    this.lastFrameAt = performance.now() - this.frameIntervalMs;
+    this.animationFrame = requestAnimationFrame(this.frame);
+  }
 
   private attachEvents(): void {
     this.canvas.addEventListener('pointerdown', this.handlePointerDown);
@@ -517,7 +743,7 @@ export class Graph3DScene {
   }
 
   private initGL(): void {
-    const gl = this.canvas.getContext('webgl', { antialias: true, alpha: false, premultipliedAlpha: false });
+    const gl = this.canvas.getContext('webgl', { antialias: true, alpha: true, premultipliedAlpha: false, preserveDrawingBuffer: false });
     if (!gl) return;
     this.gl = gl;
     this.linesProgram = createProgram(gl, LINE_VERTEX_SHADER, LINE_FRAGMENT_SHADER, ['aPosition', 'aColor'], ['uMatrix']);
@@ -534,7 +760,7 @@ export class Graph3DScene {
     this.trailColorBuffer = gl.createBuffer();
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
   }
 
   private applyThemeStyles(): void {
@@ -552,9 +778,10 @@ export class Graph3DScene {
     const borderCss = rgbaCss(border, lightTheme ? 0.4 : 0.16);
     const insetCss = rgbaCss(mixColors(border, text, 0.16), lightTheme ? 0.08 : 0.06);
 
-    this.root.style.background = `radial-gradient(circle at 50% 38%, ${topGlow}, ${baseFill} 72%)`;
+    this.root.style.background = `radial-gradient(circle at 50% 42%, ${topGlow}, ${baseFill} 72%)`;
     this.root.style.border = `1px solid ${borderCss}`;
-    this.root.style.boxShadow = `inset 0 0 0 1px ${insetCss}`;
+    this.root.style.boxShadow = `inset 0 0 0 1px ${insetCss}, 0 18px 55px rgba(1, 6, 18, .32)`;
+    this.backdrop.style.opacity = lightTheme ? '0.38' : '1';
   }
 
   private renderFrame(time: number, dt: number): void {
@@ -569,12 +796,13 @@ export class Graph3DScene {
     this.updateIdleOrbit(dt);
     this.updateTarget(dt);
     this.updateWalkers(dt);
+    this.root.dataset.cameraState = `${this.orbit.theta.toFixed(4)},${this.orbit.phi.toFixed(4)},${this.orbit.distance.toFixed(4)}`;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = graphPixelRatio();
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
 
     const bg = parseColor(this.sceneConfig.backgroundColor ?? theme.backgroundColor, '#08111f');
-    gl.clearColor(bg[0], bg[1], bg[2], 1);
+    gl.clearColor(bg[0], bg[1], bg[2], 0.82);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     const matrix = buildViewProjectionMatrix(
@@ -605,15 +833,21 @@ export class Graph3DScene {
 
     const edgePositions: number[] = [];
     const edgeColors: number[] = [];
+    const selectedPathEdges = this.getSelectedPathEdges();
     for (const link of this.data.links) {
       const from = this.data.nodes[link.sourceIndex]!;
       const to = this.data.nodes[link.targetIndex]!;
-      const incident = highlighted.size === 0 || highlighted.has(link.sourceIndex) || highlighted.has(link.targetIndex);
+      const pathKey = `${link.sourceIndex}:${link.targetIndex}`;
+      const reversePathKey = `${link.targetIndex}:${link.sourceIndex}`;
+      const onSelectedPath = selectedPathEdges.has(pathKey) || selectedPathEdges.has(reversePathKey);
+      const incident = selectedPathEdges.size > 0
+        ? onSelectedPath
+        : highlighted.size === 0 || highlighted.has(link.sourceIndex) || highlighted.has(link.targetIndex);
       const pulse = highlighted.has(link.sourceIndex) || highlighted.has(link.targetIndex)
         ? 0.28 + Math.sin(time * 5.4) * 0.08
         : 0;
-      const alpha = clamp((incident ? link.color[3] + pulse : link.color[3] * 0.32), 0.16, 0.92);
-      const segmentCount = incident ? 14 : 9;
+      const alpha = clamp((incident ? link.color[3] + pulse + (onSelectedPath ? 0.24 : 0) : link.color[3] * 0.18), 0.09, 1);
+      const segmentCount = incident ? 32 : 16;
       const arcHeight = clamp(distance3(from, to) * 0.14 + link.weight * 0.08, 0.45, 2.2);
       appendCurvedEdge(edgePositions, from, to, this.data.center, segmentCount, arcHeight);
       for (let segment = 0; segment < segmentCount; segment += 1) {
@@ -691,8 +925,8 @@ export class Graph3DScene {
         || (this.hoveredIndex >= 0 && (this.adjacency[this.hoveredIndex] ?? []).includes(index));
       const emphasis = isPinned || isHovered ? hoverScale + Math.sin(time * 7.2) * 0.08 : isAdjacent ? 1.08 : 1;
       const alpha = isPinned || isHovered ? 1 : isAdjacent ? 0.98 : 0.9;
-      const haloAlpha = isPinned || isHovered ? 0.34 : isAdjacent ? 0.18 : 0.1;
-      const haloSize = baseSize * node.size * emphasis * (isPinned || isHovered ? 3.1 : isAdjacent ? 2.4 : 1.85);
+      const haloAlpha = isPinned || isHovered ? 0.4 : isAdjacent ? 0.24 : 0.16;
+      const haloSize = baseSize * node.size * emphasis * (isPinned || isHovered ? 3.65 : isAdjacent ? 2.8 : 2.2);
       haloPositions.push(node.x, node.y, node.z);
       haloColors.push(node.color[0], node.color[1], node.color[2], haloAlpha);
       haloSizes.push(haloSize);
@@ -843,8 +1077,28 @@ export class Graph3DScene {
       return;
     }
 
-    const count = clamp(Math.round(walkConfig.count ?? Math.min(10, Math.max(4, this.data.nodes.length / 2))), 2, 18);
+    const explicitPaths = (walkConfig.paths ?? []).map((path) => ({
+      ...path,
+      indices: path.nodeIds.map((id) => this.data.nodes.findIndex((node) => node.id === id)).filter((index) => index >= 0),
+    })).filter((path) => path.indices.length > 1);
     const baseSpeed = walkConfig.speed ?? 0.34;
+    if (explicitPaths.length > 0) {
+      if (!explicitPaths.some((path) => path.id === this.selectedPathId)) this.selectedPathId = explicitPaths[0]!.id;
+      this.walkers = explicitPaths.map((path, index) => ({
+        from: path.indices[0]!,
+        to: path.indices[1]!,
+        progress: index / Math.max(1, explicitPaths.length),
+        speed: path.speed ?? baseSpeed,
+        color: parseColor(path.color, this.theme?.palette[index % Math.max(1, this.theme.palette.length)] ?? '#facc15', 0.98),
+        size: 10,
+        pathId: path.id,
+        pathIndices: path.indices,
+        pathCursor: 0,
+      }));
+      return;
+    }
+
+    const count = clamp(Math.round(walkConfig.count ?? Math.min(10, Math.max(4, this.data.nodes.length / 2))), 2, 18);
     this.walkers = Array.from({ length: count }, (_, index) => {
       const start = index % this.data.nodes.length;
       const next = chooseNextHop(start, this.adjacency, this.data.nodes) ?? start;
@@ -878,7 +1132,13 @@ export class Graph3DScene {
       }
 
       walker.from = walker.to;
-      walker.to = chooseNextHop(walker.from, this.adjacency, this.data.nodes) ?? walker.from;
+      if (walker.pathIndices && walker.pathIndices.length > 1) {
+        walker.pathCursor = ((walker.pathCursor ?? 0) + 1) % walker.pathIndices.length;
+        walker.from = walker.pathIndices[walker.pathCursor]!;
+        walker.to = walker.pathIndices[(walker.pathCursor + 1) % walker.pathIndices.length]!;
+      } else {
+        walker.to = chooseNextHop(walker.from, this.adjacency, this.data.nodes) ?? walker.from;
+      }
       walker.progress = 0;
       const nextNode = this.data.nodes[walker.from];
       const nextColor = nextNode ? readColorValue(asRecord(nextNode.point.meta).color) : undefined;
@@ -890,6 +1150,43 @@ export class Graph3DScene {
       .map((trail) => ({ ...trail, life: trail.life - dt * 0.52 }))
       .filter((trail) => trail.life > 0)
       .slice(-maxTrails);
+  }
+
+  private renderPathControls(): void {
+    const paths = this.sceneConfig.walks?.paths ?? [];
+    const signature = paths.map((path) => `${path.id}:${path.nodeIds.join('>')}`).join('|');
+    if (this.pathControls.dataset.signature === signature) return;
+    this.pathControls.dataset.signature = signature;
+    this.pathControls.replaceChildren();
+    if (paths.length === 0) return;
+    if (!paths.some((path) => path.id === this.selectedPathId)) this.selectedPathId = paths[0]!.id;
+    for (const path of paths) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = path.label ?? path.id;
+      button.dataset.pathId = path.id;
+      button.title = path.nodeIds.join(' → ');
+      button.style.cssText = `border:1px solid ${path.id === this.selectedPathId ? '#7dd3fc' : 'rgba(125,211,252,.28)'};background:${path.id === this.selectedPathId ? 'rgba(14,116,144,.34)' : 'rgba(4,12,24,.76)'};color:#d9f4ff;padding:5px 8px;border-radius:5px;font:700 9px "JetBrains Mono",monospace;letter-spacing:.06em;cursor:pointer;backdrop-filter:blur(8px);`;
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        this.selectedPathId = path.id;
+        this.pathControls.dataset.signature = '';
+        this.renderPathControls();
+        this.requestRender();
+      });
+      this.pathControls.appendChild(button);
+    }
+  }
+
+  private getSelectedPathEdges(): Set<string> {
+    const path = this.sceneConfig.walks?.paths?.find((candidate) => candidate.id === this.selectedPathId);
+    const edges = new Set<string>();
+    if (!path) return edges;
+    const indices = path.nodeIds.map((id) => this.data.nodes.findIndex((node) => node.id === id));
+    for (let index = 1; index < indices.length; index += 1) {
+      if (indices[index - 1]! >= 0 && indices[index]! >= 0) edges.add(`${indices[index - 1]}:${indices[index]}`);
+    }
+    return edges;
   }
 
   private updateCard(): void {
@@ -953,8 +1250,19 @@ export class Graph3DScene {
     if (this.hoveredIndex >= 0) candidates.add(this.hoveredIndex);
 
     const topByDegree = this.data.nodes
-      .map((node, index) => ({ index, degree: node.degree, bridgeRisk: readNumber(asRecord(node.point.meta).bridgeRisk) ?? 0 }))
-      .sort((a, b) => (b.bridgeRisk - a.bridgeRisk) || (b.degree - a.degree))
+      .map((node, index) => {
+        const meta = asRecord(node.point.meta);
+        const rank = readNumber(meta.rank);
+        const score = readNumber(meta.score) ?? 0;
+        return {
+          index,
+          degree: node.degree,
+          bridgeRisk: readNumber(meta.bridgeRisk) ?? 0,
+          anomalyPriority: meta.anomaly === true ? 2_000 + (readNumber(meta.score) ?? 0) * 100 : 0,
+          decisionPriority: rank == null ? 0 : 1_000 - rank * 100 + score,
+        };
+      })
+      .sort((a, b) => (b.bridgeRisk - a.bridgeRisk) || (b.anomalyPriority - a.anomalyPriority) || (b.decisionPriority - a.decisionPriority) || (b.degree - a.degree))
       .slice(0, 4);
 
     for (const entry of topByDegree) candidates.add(entry.index);
@@ -1026,9 +1334,11 @@ export class Graph3DScene {
 
   private resetOrbit(): void {
     const radius = Math.max(1, this.data.radius);
+    const anomalyField = this.chartConfig?.series.some((series) => series.type === 'anomalyDetectionField3d') === true;
+    const minimumDistance = anomalyField ? Math.max(4, radius * 0.85) : Math.max(6, radius * 1.15);
     this.orbit.theta = 0.54;
     this.orbit.phi = 1.02;
-    this.orbit.distance = clamp(this.sceneConfig.initialDistance ?? radius * 2.5, Math.max(6, radius * 1.15), Math.max(20, radius * 7));
+    this.orbit.distance = clamp(this.sceneConfig.initialDistance ?? radius * 2.5, minimumDistance, Math.max(20, radius * 7));
     this.target = [...this.data.center];
     this.desiredTarget = [...this.data.center];
     this.lastInteractionAt = performance.now();
@@ -1122,11 +1432,13 @@ export class Graph3DScene {
       this.orbit.phi = clamp(this.orbit.phi + dy * 0.007, 0.16, Math.PI - 0.16);
       this.lastPointer = { x: event.clientX, y: event.clientY };
       this.lastInteractionAt = performance.now();
+      this.requestRender();
       return;
     }
 
     const hitIndex = this.hitTest(localX, localY);
     this.setHovered(hitIndex, event);
+    this.requestRender();
   };
 
   private readonly handlePointerUp = (event: PointerEvent) => {
@@ -1149,11 +1461,13 @@ export class Graph3DScene {
     }
 
     this.lastInteractionAt = performance.now();
+    this.requestRender();
   };
 
   private readonly handlePointerLeave = (event: PointerEvent) => {
     if (this.pointerDown) return;
     if (this.pinnedIndex < 0) this.setHovered(-1, event);
+    this.requestRender();
   };
 
   private readonly handleWheel = (event: WheelEvent) => {
@@ -1164,11 +1478,13 @@ export class Graph3DScene {
     const scale = event.deltaY > 0 ? 1.09 : 0.91;
     this.orbit.distance = clamp(this.orbit.distance * scale, minDistance, maxDistance);
     this.lastInteractionAt = performance.now();
+    this.requestRender();
   };
 
   private readonly handleDoubleClick = (event: MouseEvent) => {
     this.clearPinned(event);
     this.resetOrbit();
+    this.requestRender();
   };
 
   private hitTest(x: number, y: number): number {
@@ -1244,6 +1560,12 @@ function readColorValue(value: unknown): ColorValue | undefined {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+function graphPixelRatio(): number {
+  const device = window.devicePixelRatio || 1;
+  const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+  return Math.min(Math.max(device, memory <= 4 ? 1.5 : 2), 3);
 }
 
 function lerp(a: number, b: number, t: number): number {

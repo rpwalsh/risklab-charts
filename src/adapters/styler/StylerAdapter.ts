@@ -1,32 +1,19 @@
-// ============================================================================
-// RiskLab Charts — StyleX / xstyle Adapter
-// Bridges Meta StyleX (and the xstyle variant) with RiskLab theming.
-//
-// StyleX is a build-time CSS-in-JS solution from Meta. Unlike runtime
-// solutions (emotion, styled-components), StyleX generates atomic CSS at
-// build time, so we can't inject dynamic CSS at runtime. Instead, this
-// adapter provides:
-//
-// 1. A token-to-ThemeConfig converter so you can derive chart themes
-//    from your StyleX design tokens.
-// 2. Pre-built StyleX style objects for chart containers, wrappers,
-//    and responsive layouts.
-// 3. A className composer that works with StyleX's props() output.
-// ============================================================================
+// RiskLab Charts - RiskLab Styler token adapter.
+// Converts build-time token contracts into chart themes without runtime CSS injection.
 
 import type { ThemeConfig } from '../../core/types';
 
 // ---------------------------------------------------------------------------
-// 1. StyleX Token → ThemeConfig Converter
+// 1. RiskLab Styler Token → ThemeConfig Converter
 // ---------------------------------------------------------------------------
 
 /**
- * Shape of design tokens typically exported from a StyleX theme.
- * Users pass their own token values from their StyleX theme definition.
+ * Shape of design tokens typically exported from a RiskLab Styler theme.
+ * Users pass their own token values from their RiskLab Styler theme definition.
  *
  * ```ts
- * // In your StyleX theme file:
- * export const tokens = stylex.defineVars({
+ * // In your RiskLab Styler theme file:
+ * export const tokens = styler.defineVars({
  *   primaryColor: '#6366f1',
  *   secondaryColor: '#ec4899',
  *   bgColor: '#0f172a',
@@ -38,7 +25,7 @@ import type { ThemeConfig } from '../../core/types';
  * });
  * ```
  */
-export interface StyleXTokens {
+export interface StylerTokens {
   /** Series palette colors (array of CSS color strings) */
   palette?: string[];
   /** Individual named colors (mapped into palette if palette not provided) */
@@ -70,8 +57,8 @@ export interface StyleXTokens {
   [key: string]: unknown;
 }
 
-export interface StyleXAdapterOptions {
-  /** Theme id (default: 'stylex') */
+export interface StylerAdapterOptions {
+  /** Theme id (default: 'styler') */
   id?: string;
   /** Theme display name */
   name?: string;
@@ -82,13 +69,13 @@ export interface StyleXAdapterOptions {
 }
 
 /**
- * Convert StyleX design tokens into a RiskLab ThemeConfig.
+ * Convert RiskLab Styler design tokens into a RiskLab ThemeConfig.
  *
  * ```ts
- * import { tokens } from './myStyleXTheme';
- * import { stylexToTheme } from '@risklab/charts/stylex';
+ * import { tokens } from './myTheme';
+ * import { stylerTokensToTheme } from '@risklab/charts/styler';
  *
- * const chartTheme = stylexToTheme({
+ * const chartTheme = stylerTokensToTheme({
  *   primaryColor: tokens.primaryColor,
  *   bgColor: tokens.bgColor,
  *   textColor: tokens.textColor,
@@ -96,13 +83,13 @@ export interface StyleXAdapterOptions {
  * });
  * ```
  */
-export function stylexToTheme(
-  tokens: StyleXTokens,
-  options: StyleXAdapterOptions = {},
+export function stylerTokensToTheme(
+  tokens: StylerTokens,
+  options: StylerAdapterOptions = {},
 ): ThemeConfig {
   const {
-    id = 'stylex',
-    name = 'StyleX Theme',
+    id = 'styler',
+    name = 'RiskLab Styler Theme',
     mode = 'dark',
     overrides = {},
   } = options;
@@ -166,7 +153,7 @@ export function stylexToTheme(
       inactiveColor: textSecondary,
     },
     tokens: {
-      stylexMode: mode,
+      stylerMode: mode,
       surface,
       ...tokens,
     },
@@ -177,20 +164,20 @@ export function stylexToTheme(
 }
 
 // ---------------------------------------------------------------------------
-// 2. StyleX-Compatible Style Definitions
+// 2. RiskLab Styler-Compatible Style Definitions
 // ---------------------------------------------------------------------------
 
 /**
  * Pre-built inline style objects for chart containers.
- * These are plain objects that work with StyleX's `props()` merge,
+ * These are plain objects that work with RiskLab Styler's `props()` merge,
  * or can be spread directly in React `style` props.
  *
  * ```tsx
- * import { chartStyles } from '@risklab/charts/stylex';
+ * import { chartStyles } from '@risklab/charts/styler';
  * // Use directly:
  * <div style={chartStyles.responsive} />
- * // Or merge with StyleX props():
- * <div {...stylex.props(myStyles.container)} style={chartStyles.responsive} />
+ * // Or merge with RiskLab Styler props():
+ * <div {...styler.props(myStyles.container)} style={chartStyles.responsive} />
  * ```
  */
 export const chartStyles = {
@@ -252,7 +239,7 @@ export const chartStyles = {
 
 /**
  * Generate CSS custom properties (variables) from a RiskLab ThemeConfig.
- * Useful for bridging chart theme colors into StyleX / vanilla CSS.
+ * Useful for bridging chart theme colors into RiskLab Styler / vanilla CSS.
  *
  * Returns an object like:
  * ```
@@ -304,15 +291,15 @@ export function applyThemeCSSVars(
 }
 
 // ---------------------------------------------------------------------------
-// 4. className Composer (works with StyleX props output)
+// 4. className Composer (works with RiskLab Styler props output)
 // ---------------------------------------------------------------------------
 
 /**
- * Merge classNames from StyleX `props()` output with RiskLab's own classes.
- * StyleX's `props()` returns `{ className?: string, style?: object }`.
+ * Merge classNames from RiskLab Styler `props()` output with RiskLab's own classes.
+ * RiskLab Styler's `props()` returns `{ className?: string, style?: object }`.
  *
  * ```tsx
- * const sx = stylex.props(myStyles.chartWrapper);
+ * const sx = styler.props(myStyles.chartWrapper);
  * <div {...sx} className={mergeClassNames(sx.className, 'risklab-chart')} />
  * ```
  */

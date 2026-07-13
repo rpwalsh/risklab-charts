@@ -8,7 +8,7 @@
 //
 // Usage:
 //   <script>
-//     import { createSvelteChart } from '@risklab/charts/svelte';
+//     import { createSvelteChart } from '@risklab/charts-svelte';
 //     import { onMount, onDestroy } from 'svelte';
 //
 //     let el;
@@ -81,7 +81,7 @@ export function getSvelteComponentSource(): string {
   return `
 <script>
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
-  import { createSvelteChart } from '@risklab/charts/svelte';
+  import { createSvelteChart } from '@risklab/charts-svelte';
 
   /** @type {import('@risklab/charts').ChartConfig} */
   export let config;
@@ -139,7 +139,7 @@ export function getSvelte5ComponentSource(): string {
   return `
 <script>
   import { onMount } from 'svelte';
-  import { createSvelteChart } from '@risklab/charts/svelte';
+  import { createSvelteChart } from '@risklab/charts-svelte';
   import type { ChartConfig, ThemeConfig } from '@risklab/charts';
 
   let { config, theme, style = 'width:100%;height:400px', onReady }: {

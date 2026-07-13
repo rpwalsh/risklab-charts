@@ -6,7 +6,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['src/**/*.{ts,tsx}', 'ui/src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'charts/*/src/**/*.{ts,tsx}'],
     plugins: {
       'react-hooks': reactHooks,
     },

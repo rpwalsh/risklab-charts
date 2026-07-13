@@ -1,7 +1,7 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — X-Range Chart
 // Horizontal bars spanning [x, x2] per category row.
-// Identical to Highcharts' premium "xrange" series — free in RiskLab Charts.
+// Identical to commercial charting' premium "xrange" series — free in RiskLab Charts.
 // Use cases: project scheduling, task timelines, resource allocation.
 // ============================================================================
 

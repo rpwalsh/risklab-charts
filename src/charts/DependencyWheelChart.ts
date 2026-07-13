@@ -1,8 +1,8 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Dependency Wheel Chart (Chord Diagram)
 // Renders directional flows between nodes arranged in a circle.
 // Each node is a radial arc; flows are drawn as Bezier chords scaled to
-// the relative weight of each connection — matching Highcharts' premium
+// the relative weight of each connection — matching commercial charting' premium
 // dependencywheel series type.
 // ============================================================================
 

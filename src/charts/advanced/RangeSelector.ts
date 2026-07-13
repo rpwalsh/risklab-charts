@@ -1,7 +1,7 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Range Selector
 // Date/time range buttons (1D, 1W, 1M, 3M, 6M, YTD, 1Y, All) and an
-// optional date-picker input pair. Mirrors Highcharts Stock's rangeSelector.
+// optional date-picker input pair. Mirrors commercial charting Stock's rangeSelector.
 // ============================================================================
 
 import type { BaseRenderer } from '../../renderers/BaseRenderer';

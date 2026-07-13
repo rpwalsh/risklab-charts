@@ -1,8 +1,8 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Streamgraph (ThemeRiver) Chart
 // Stacked area chart with a silhouette (stream) baseline so the shape
 // flows symmetrically around a central axis.
-// Equivalent to Highcharts' "streamgraph" series — free in RiskLab Charts.
+// Equivalent to commercial charting' "streamgraph" series — free in RiskLab Charts.
 // ============================================================================
 
 import type { BaseRenderer } from '../renderers/BaseRenderer';

@@ -25,7 +25,6 @@ import { fetchOpenTopoPoints } from './openTopo';
 
 export const TERRAIN_3D_CHART_TYPES = [
   'terrain3d',
-  'spectralSurface3d',
   'threatSurface3d',
   'marketRegimeSurface3d',
   'adaptiveResourceUse3d',
@@ -90,10 +89,31 @@ function m4mul(a: Mat4, b: Mat4): Mat4 {
   return m;
 }
 
+function projectM4(matrix: Mat4, point: Vec3, width: number, height: number): { x: number; y: number; visible: boolean } {
+  const [x, y, z] = point;
+  const cx = matrix[0]! * x + matrix[4]! * y + matrix[8]! * z + matrix[12]!;
+  const cy = matrix[1]! * x + matrix[5]! * y + matrix[9]! * z + matrix[13]!;
+  const cz = matrix[2]! * x + matrix[6]! * y + matrix[10]! * z + matrix[14]!;
+  const cw = matrix[3]! * x + matrix[7]! * y + matrix[11]! * z + matrix[15]!;
+  if (!Number.isFinite(cw) || Math.abs(cw) < 1e-6) return { x: 0, y: 0, visible: false };
+  const nx = cx / cw;
+  const ny = cy / cw;
+  const nz = cz / cw;
+  return { x: (nx * .5 + .5) * width, y: (1 - (ny * .5 + .5)) * height, visible: nz >= -1.2 && nz <= 1.2 };
+}
+
 // ── Color utilities ───────────────────────────────────────────────────────────
 
-function elevRGB(t: number, cmap: string): [number, number, number] {
+function elevRGB(t: number, cmap: string, colorRamp?: string[]): [number, number, number] {
   const c = Math.max(0, Math.min(1, t));
+  if (colorRamp && colorRamp.length > 0) {
+    if (colorRamp.length === 1) return parseHexRGB(colorRamp[0]!);
+    const scaled = c * (colorRamp.length - 1);
+    const index = Math.min(colorRamp.length - 2, Math.floor(scaled));
+    const mix = scaled - index;
+    const a = parseHexRGB(colorRamp[index]!); const b = parseHexRGB(colorRamp[index + 1]!);
+    return [a[0] + (b[0] - a[0]) * mix, a[1] + (b[1] - a[1]) * mix, a[2] + (b[2] - a[2]) * mix];
+  }
   if (cmap === 'gray') return [c, c, c];
   if (cmap === 'thermal') {
     if (c < 0.33) { const s = c * 3; return [s * 0.5, 0, 0.5 + s * 0.5]; }
@@ -131,14 +151,26 @@ const VERT = `
   attribute float a_elev;
   uniform mat4 u_mvp;
   uniform mat3 u_nmat;
+  uniform float u_time;
+  uniform float u_seaLevel;
+  uniform float u_waterEnabled;
   varying vec3 v_color;
   varying vec3 v_normal;
   varying float v_elev;
+  varying float v_water;
+  varying vec3 v_position;
   void main() {
+    vec3 position = a_pos;
+    v_water = u_waterEnabled > 0.5 && abs(a_elev - u_seaLevel) < 0.0005 ? 1.0 : 0.0;
+    if (v_water > 0.5) {
+      float wave = sin(a_pos.x * 34.0 + u_time * 0.85) + cos(a_pos.z * 29.0 - u_time * 0.68);
+      position.y += wave * 0.0017;
+    }
     v_color   = a_color;
     v_normal  = normalize(u_nmat * a_normal);
     v_elev    = a_elev;
-    gl_Position = u_mvp * vec4(a_pos, 1.0);
+    v_position = position;
+    gl_Position = u_mvp * vec4(position, 1.0);
   }`;
 
 const FRAG = `
@@ -146,16 +178,23 @@ const FRAG = `
   varying vec3  v_color;
   varying vec3  v_normal;
   varying float v_elev;
+  varying float v_water;
+  varying vec3  v_position;
   uniform vec3  u_light;
   uniform float u_ambient;
   uniform float u_contourInt;
   uniform vec3  u_contourCol;
   uniform int   u_contours;
+  uniform float u_time;
   void main() {
     float diff  = max(dot(normalize(v_normal), normalize(u_light)), 0.0);
     float light = u_ambient + (1.0 - u_ambient) * diff;
     vec3 col    = v_color * light;
-    if (u_contours == 1) {
+    if (v_water > 0.5) {
+      float ripple = sin(v_position.x * 72.0 + u_time * 1.25) * cos(v_position.z * 64.0 - u_time * 0.92);
+      float glint = pow(max(0.0, 0.5 + ripple * 0.5), 10.0);
+      col = v_color * (0.72 + ripple * 0.08) + vec3(0.10, 0.32, 0.46) * glint;
+    } else if (u_contours == 1) {
       float m = mod(v_elev, u_contourInt) / max(u_contourInt, 0.0001);
       float w = 0.008;
       if (m < w || m > (1.0 - w)) col = mix(col, u_contourCol, 0.85);
@@ -221,6 +260,10 @@ interface TerrainPointLike {
   color?: string | [number, number, number];
 }
 
+type TerrainOverlayNode = NonNullable<NonNullable<Terrain3DConfig['overlays']>['nodes']>[number];
+interface OverlayMotionValues { x: number; y: number; z: number; headingDeg: number; speedKts: number; altitudeM: number; linkQualityPct: number; confidencePct: number }
+interface OverlayTween { current: OverlayMotionValues; from: OverlayMotionValues; to: OverlayMotionValues; startedAt: number; duration: number }
+
 // ── Main scene class ──────────────────────────────────────────────────────────
 
 interface TerrainCamera {
@@ -242,7 +285,11 @@ export class Terrain3DScene {
   private readonly host: HTMLElement;
   private readonly root: HTMLDivElement;
   private readonly canvas: HTMLCanvasElement;
+  private readonly overlayCanvas: HTMLCanvasElement;
   private readonly infoEl: HTMLDivElement;
+  private readonly axesEl: HTMLDivElement;
+  private readonly hoverEl: HTMLDivElement;
+  private readonly flightHudEl: HTMLDivElement;
   private gl: WebGLRenderingContext | null = null;
   private prog: WebGLProgram | null = null;
   private wireProg: WebGLProgram | null = null;
@@ -254,7 +301,17 @@ export class Terrain3DScene {
   private minElev = 0;
   private maxElev = 1;
   private buildingCount = 0;
+  private sourcePoints: TerrainPointLike[] = [];
   private terrCfg: Terrain3DConfig = {};
+  private analyticalSurface = false;
+  private terrainDataSignature = '';
+  private overlayHitTargets: Array<{ x: number; y: number; radius: number; node: TerrainOverlayNode }> = [];
+  private selectedOverlayId = '';
+  private firstPersonOverlayId = '';
+  private sensorMode: 'optical' | 'night' | 'thermal' | 'lowLight' = 'optical';
+  private desiredFlightCam: TerrainCamera | null = null;
+  private readonly overlayDisplayNodes = new Map<string, OverlayTween>();
+  private terrainSpace = { minX: 0, maxX: 1, minY: 0, maxY: 1, minZ: 0, maxZ: 1, scaleX: 1, scaleZ: 1, exaggeration: 1 };
 
   private cam: TerrainCamera = { azimuth: Math.PI, polar: 0.65, distance: 2.5, fov: 0.85, orthoHX: 1, orthoHZ: 1, cx: 0, cy: 0, cz: 0 };
   private chartArea: Rect = { x: 0, y: 0, width: 400, height: 300 };
@@ -283,6 +340,11 @@ export class Terrain3DScene {
     this.canvas.style.cssText = 'display:block;width:100%;height:100%;cursor:grab;';
     this.root.appendChild(this.canvas);
 
+    this.overlayCanvas = document.createElement('canvas');
+    this.overlayCanvas.setAttribute('data-uc-terrain-overlays', 'true');
+    this.overlayCanvas.style.cssText = 'position:absolute;inset:0;z-index:3;width:100%;height:100%;pointer-events:none;';
+    this.root.appendChild(this.overlayCanvas);
+
     this.infoEl = document.createElement('div');
     this.infoEl.style.cssText = [
       'position:absolute', 'bottom:10px', 'right:12px',
@@ -291,6 +353,21 @@ export class Terrain3DScene {
       'color:rgba(220,235,255,0.55)', 'pointer-events:none',
     ].join(';');
     this.root.appendChild(this.infoEl);
+
+    this.axesEl = document.createElement('div');
+    this.axesEl.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:4;font:600 10px Inter,"Segoe UI",Arial,sans-serif;letter-spacing:.02em;color:rgba(205,232,250,.82);text-transform:uppercase;';
+    this.root.appendChild(this.axesEl);
+
+    this.hoverEl = document.createElement('div');
+    this.hoverEl.setAttribute('role', 'tooltip');
+    this.hoverEl.style.cssText = 'position:absolute;z-index:8;display:none;min-width:210px;padding:10px 12px;border:1px solid rgba(125,211,252,.46);border-radius:2px;background:rgba(3,12,21,.97);box-shadow:0 8px 20px rgba(0,0,0,.3);color:#dff5ff;font:600 11px/1.55 Inter,"Segoe UI",Arial,sans-serif;pointer-events:none;';
+    this.hoverEl.addEventListener('click', this.onTooltipClick);
+    this.root.appendChild(this.hoverEl);
+
+    this.flightHudEl = document.createElement('div');
+    this.flightHudEl.style.cssText = 'position:absolute;inset:0;z-index:7;display:none;pointer-events:none;color:#dff5ff;font:600 11px Inter,Segoe UI,sans-serif;text-shadow:0 1px 3px #000;';
+    this.flightHudEl.addEventListener('pointerdown', this.onFlightHudPointerDown);
+    this.root.appendChild(this.flightHudEl);
 
     this.bindEvents();
     this.host.appendChild(this.root);
@@ -301,11 +378,38 @@ export class Terrain3DScene {
   // ── Public API ─────────────────────────────────────────────────────────────
 
   update(ctx: { series: ProcessedSeries[]; state: ChartState; theme: ThemeConfig; config: ChartConfig }): void {
-    this.terrCfg = ctx.config.terrain3d ?? {};
+    this.terrCfg = { ...(ctx.config.terrain3d ?? {}) };
+    const requestedFirstPerson = this.terrCfg.firstPersonNodeId;
+    if (requestedFirstPerson && requestedFirstPerson !== this.firstPersonOverlayId) {
+      this.selectedOverlayId = '';
+      this.firstPersonOverlayId = requestedFirstPerson;
+      this.desiredFlightCam = null;
+      this.sensorMode = 'optical';
+      this.hoverEl.style.display = 'none';
+    }
+    this.applySensorConfig();
+    this.retargetOverlayNodes();
+    const themeBackground = ctx.theme.colors?.background ?? (typeof ctx.theme.backgroundColor === 'string' ? ctx.theme.backgroundColor : '#020812');
+    const themeText = ctx.theme.colors?.text ?? (typeof ctx.theme.textColor === 'string' ? ctx.theme.textColor : '#dff5ff');
+    this.hoverEl.style.background = themeBackground;
+    this.hoverEl.style.color = themeText;
+    this.hoverEl.style.borderColor = ctx.theme.palette[0] ?? '#7dd3fc';
+    this.infoEl.style.color = themeText;
+    this.renderAxes();
     this.resize(ctx.state.chartArea);
 
     const series = ctx.series.filter(s => TERRAIN_3D_CHART_TYPE_SET.has(s.type));
     if (!series.length) return;
+    const analyticalSurface = series.some((entry) => (
+      entry.type === 'signalConsolidation3d'
+      || entry.type === 'marketRegimeSurface3d'
+      || entry.type === 'adaptiveResourceUse3d'
+    ));
+    this.analyticalSurface = analyticalSurface;
+    if (analyticalSurface && !this.terrCfg.colorRamp?.length) {
+      this.terrCfg.colorRamp = [...ctx.theme.palette];
+      this.terrCfg.colormap = 'gray';
+    }
 
     const pts = series.flatMap(s => s.data.map(d => ({
       x: Number(d.x ?? 0),
@@ -337,8 +441,18 @@ export class Terrain3DScene {
       return;
     }
 
+    const signature = `${pts.length}:${this.terrCfg.gridWidth ?? 0}:${this.terrCfg.gridHeight ?? 0}:${pts[0]?.x ?? 0}:${pts[0]?.y ?? 0}:${pts.at(-1)?.x ?? 0}:${pts.at(-1)?.y ?? 0}`;
+    if (this.terrCfg.preserveGeometryOnUpdate && this.terrainDataSignature === signature && this.tiles.length > 0) {
+      this.applyFocusCamera();
+      this.drawFrame();
+      this.dirty = false;
+      return;
+    }
+    this.terrainDataSignature = signature;
     this.buildTerrain(pts, this.terrCfg);
-    this.dirty = true;
+    this.applyFocusCamera();
+    this.drawFrame();
+    this.dirty = false;
   }
 
   resize(chartArea: Rect): void {
@@ -347,7 +461,7 @@ export class Terrain3DScene {
     this.root.style.top   = `${chartArea.y}px`;
     this.root.style.width  = `${chartArea.width}px`;
     this.root.style.height = `${chartArea.height}px`;
-    const dpr = Math.min(window.devicePixelRatio ?? 1, 2);
+    const dpr = Math.min(Math.max(window.devicePixelRatio ?? 1, 1), 2);
     const w = Math.max(1, Math.floor(chartArea.width));
     const h = Math.max(1, Math.floor(chartArea.height));
     if (this.canvas.width !== Math.floor(w * dpr) || this.canvas.height !== Math.floor(h * dpr)) {
@@ -356,7 +470,18 @@ export class Terrain3DScene {
       this.canvas.style.width  = `${w}px`;
       this.canvas.style.height = `${h}px`;
     }
+    if (this.overlayCanvas.width !== Math.floor(w * dpr) || this.overlayCanvas.height !== Math.floor(h * dpr)) {
+      this.overlayCanvas.width = Math.floor(w * dpr);
+      this.overlayCanvas.height = Math.floor(h * dpr);
+      this.overlayCanvas.style.width = `${w}px`;
+      this.overlayCanvas.style.height = `${h}px`;
+    }
     this.dirty = true;
+    // A mounted chart can receive its final non-zero layout after the scene's
+    // first animation frame. Draw synchronously so terrain is visible on first
+    // selection instead of waiting for a pointer or wheel event.
+    this.drawFrame();
+    this.dirty = false;
   }
 
   destroy(): void {
@@ -365,6 +490,9 @@ export class Terrain3DScene {
     window.removeEventListener('pointermove', this.onMove);
     window.removeEventListener('pointerup', this.onUp);
     this.canvas.removeEventListener('wheel', this.onWheel);
+    this.canvas.removeEventListener('pointerleave', this.onLeave);
+    this.hoverEl.removeEventListener('click', this.onTooltipClick);
+    this.flightHudEl.removeEventListener('pointerdown', this.onFlightHudPointerDown);
     this.disposeTiles();
     this.root.remove();
   }
@@ -386,6 +514,7 @@ export class Terrain3DScene {
   private buildTerrain(pts: TerrainPointLike[], cfg: Terrain3DConfig): void {
     const gl = this.gl;
     if (!gl || !pts.length) return;
+    this.sourcePoints = pts;
     this.disposeTiles();
     this.buildingCount = 0;
 
@@ -448,17 +577,25 @@ export class Terrain3DScene {
     const cmap = cfg.colormap ?? 'hypsometric';
     const elevRange = maxZ - minZ || 1;
     const exag = cfg.exaggeration ?? 1;
+    const waterLevel = cfg.water?.seaLevel ?? 0;
+    const waterEnabled = cfg.water?.enabled === true && minZ < waterLevel;
+    const deepWater = parseHexRGB(cfg.water?.deepColor ?? '#031b42');
+    const shallowWater = parseHexRGB(cfg.water?.shallowColor ?? '#1686a8');
+    this.root.dataset.waterCellCount = String(waterEnabled ? Array.from(elevGrid).filter(elevation => elevation <= waterLevel).length : 0);
+    this.root.dataset.waterLevel = String(waterLevel);
 
     // Preserve geographic aspect ratio
     const rangeXY = Math.max(rangeX, rangeY);
     const scaleX = rangeX / rangeXY;
     const scaleZ = rangeY / rangeXY;
+    this.terrainSpace = { minX, maxX, minY, maxY, minZ, maxZ, scaleX, scaleZ, exaggeration: exag };
 
     // Compute normals using world-space Y values so slopes are correct for lighting
     // Without this, raw metre elevations ~9000m range produce near-horizontal normals → black terrain
     const worldElev = new Float32Array(elevGrid.length);
     for (let i = 0; i < elevGrid.length; i++) {
-      worldElev[i] = ((elevGrid[i] - minZ) / elevRange) * exag;
+      const displayElevation = waterEnabled ? Math.max(elevGrid[i], waterLevel) : elevGrid[i];
+      worldElev[i] = ((displayElevation - minZ) / elevRange) * exag;
     }
     const normals = this.computeNormals(worldElev, this.gridW, this.gridH, scaleX, scaleZ);
 
@@ -483,17 +620,21 @@ export class Terrain3DScene {
     if (isOrtho) {
       this.cam.azimuth  = cfg.initialAzimuth ?? Math.PI;
       this.cam.polar    = cfg.initialPolar ?? autoPolar;
-      this.cam.distance = cfg.initialDistance ?? autoDist;
+      this.cam.distance = cfg.initialDistance != null && cfg.initialDistance > 0.2 && cfg.initialDistance <= 10
+        ? cfg.initialDistance
+        : autoDist;
       this.cam.orthoHX  = scaleX * 1.05;
       this.cam.orthoHZ  = scaleZ * 1.05;
     } else {
       this.cam.fov      = autoFov;
       this.cam.azimuth  = cfg.initialAzimuth ?? Math.PI;
       this.cam.polar    = cfg.initialPolar ?? autoPolar;
-      this.cam.distance = cfg.initialDistance ?? autoDist;
+      this.cam.distance = cfg.initialDistance != null && cfg.initialDistance > 0.2 && cfg.initialDistance <= 10
+        ? cfg.initialDistance
+        : autoDist;
     }
     this.cam.cx = 0;
-    this.cam.cy = seaY;   // pivot at sea level
+    this.cam.cy = this.analyticalSurface ? seaY + (peakY - seaY) * 0.62 : seaY;
     this.cam.cz = 0;
 
     const colors = new Float32Array(this.gridW * this.gridH * 3);
@@ -507,6 +648,13 @@ export class Terrain3DScene {
         // This keeps lowland green / highland brown regardless of ocean depth.
         let t: number;
         const e = elevGrid[i];
+        if (waterEnabled && e <= waterLevel) {
+          const depthMix = clamp((e - minZ) / Math.max(1e-9, waterLevel - minZ), 0, 1);
+          colors[i * 3] = deepWater[0] + (shallowWater[0] - deepWater[0]) * depthMix;
+          colors[i * 3 + 1] = deepWater[1] + (shallowWater[1] - deepWater[1]) * depthMix;
+          colors[i * 3 + 2] = deepWater[2] + (shallowWater[2] - deepWater[2]) * depthMix;
+          continue;
+        }
         if (minZ < 0 && maxZ > 0) {
           t = e < 0
             ? 0.35 * (e - minZ) / (-minZ)
@@ -514,7 +662,7 @@ export class Terrain3DScene {
         } else {
           t = (e - minZ) / elevRange;
         }
-        const [r, g, b] = elevRGB(t, cmap);
+        const [r, g, b] = elevRGB(t, cmap, cfg.colorRamp);
         colors[i * 3] = r; colors[i * 3 + 1] = g; colors[i * 3 + 2] = b;
       }
     }
@@ -538,8 +686,9 @@ export class Terrain3DScene {
             const v = li * tw + lj;
             const g = gi * this.gridW + gj;
             const e = elevGrid[g];
+            const displayElevation = waterEnabled ? Math.max(e, waterLevel) : e;
             pos[v * 3]     = ((gj / (this.gridW - 1)) * 2 - 1) * scaleX;
-            pos[v * 3 + 1] = ((e - minZ) / elevRange) * exag;  // Y: full range, no clamping
+            pos[v * 3 + 1] = ((displayElevation - minZ) / elevRange) * exag;
             pos[v * 3 + 2] = ((gi / (this.gridH - 1)) * 2 - 1) * scaleZ;
             norm[v * 3]     = normals[g * 3];
             norm[v * 3 + 1] = normals[g * 3 + 1];
@@ -547,7 +696,7 @@ export class Terrain3DScene {
             col[v * 3]      = colors[g * 3];
             col[v * 3 + 1]  = colors[g * 3 + 1];
             col[v * 3 + 2]  = colors[g * 3 + 2];
-            elev[v]         = (e - minZ) / elevRange; // normalized [0,1]
+            elev[v]         = (displayElevation - minZ) / elevRange;
           }
         }
 
@@ -603,6 +752,7 @@ export class Terrain3DScene {
     }
 
     this.updateInfoEl();
+    this.updateSemanticInfoEl();
   }
 
   private fillEmpty(grid: Float32Array, hit: Uint32Array, W: number, H: number): void {
@@ -809,14 +959,66 @@ export class Terrain3DScene {
 
   private readonly frame = () => {
     this.animFrame = requestAnimationFrame(this.frame);
+    if (this.terrCfg.water?.enabled) this.dirty = true;
+    const now = performance.now();
+    for (const tween of this.overlayDisplayNodes.values()) {
+      const progress = clamp((now - tween.startedAt) / Math.max(1, tween.duration), 0, 1);
+      for (const key of Object.keys(tween.current) as Array<keyof OverlayMotionValues>) tween.current[key] = tween.from[key] + (tween.to[key] - tween.from[key]) * progress;
+      if (progress < 1) this.dirty = true;
+    }
+    if (this.firstPersonOverlayId) {
+      const sourceNode = this.terrCfg.overlays?.nodes?.find(node => node.id === this.firstPersonOverlayId);
+      const motion = this.overlayDisplayNodes.get(this.firstPersonOverlayId)?.current;
+      if (sourceNode && motion) {
+        const displayNode = { ...sourceNode, x: motion.x, y: motion.y, z: motion.z, data: { ...sourceNode.data, headingDeg: motion.headingDeg } };
+        const target = this.firstPersonCameraForNode(displayNode);
+        this.cam = target;
+        this.desiredFlightCam = target;
+        this.dirty = true;
+      }
+    } else if (this.desiredFlightCam) {
+      const target = this.desiredFlightCam;
+      const blend = .08;
+      this.cam.azimuth += shortestAngle(target.azimuth - this.cam.azimuth) * blend;
+      this.cam.polar += (target.polar - this.cam.polar) * blend;
+      this.cam.distance += (target.distance - this.cam.distance) * blend;
+      this.cam.cx += (target.cx - this.cam.cx) * blend;
+      this.cam.cy += (target.cy - this.cam.cy) * blend;
+      this.cam.cz += (target.cz - this.cam.cz) * blend;
+      this.dirty = true;
+    }
     if (this.dirty) { this.drawFrame(); this.dirty = false; }
   };
+
+  private overlayValues(node: TerrainOverlayNode): OverlayMotionValues {
+    return { x: node.x, y: node.y, z: node.z, headingDeg: Number(node.data?.headingDeg ?? 0), speedKts: Number(node.data?.speedKts ?? 0), altitudeM: Number(node.data?.altitudeM ?? node.z), linkQualityPct: Number(node.data?.linkQualityPct ?? 0), confidencePct: Number(node.data?.confidencePct ?? 0) };
+  }
+
+  private retargetOverlayNodes(): void {
+    const now = performance.now();
+    const duration = Math.max(80, this.terrCfg.overlayTransitionMs ?? 620);
+    for (const node of this.terrCfg.overlays?.nodes ?? []) {
+      const target = this.overlayValues(node);
+      const tween = this.overlayDisplayNodes.get(node.id);
+      if (!tween) {
+        this.overlayDisplayNodes.set(node.id, { current: { ...target }, from: { ...target }, to: { ...target }, startedAt: now, duration });
+        continue;
+      }
+      const changed = Object.keys(target).some((key) => Math.abs(target[key as keyof OverlayMotionValues] - tween.to[key as keyof OverlayMotionValues]) > 1e-7);
+      if (!changed) continue;
+      const headingTarget = tween.current.headingDeg + shortestAngle((target.headingDeg - tween.current.headingDeg) * Math.PI / 180) * 180 / Math.PI;
+      tween.from = { ...tween.current };
+      tween.to = { ...target, headingDeg: headingTarget };
+      tween.startedAt = now;
+      tween.duration = duration;
+    }
+  }
 
   private drawFrame(): void {
     const gl = this.gl;
     if (!gl || !this.prog || (!this.tiles.length && !this.buildingTiles.length)) return;
 
-    const dpr = Math.min(window.devicePixelRatio ?? 1, 2);
+    const dpr = Math.min(Math.max(window.devicePixelRatio ?? 1, 1), 2);
     const w = Math.max(1, Math.floor(this.chartArea.width) * dpr);
     const h = Math.max(1, Math.floor(this.chartArea.height) * dpr);
     gl.viewport(0, 0, w, h);
@@ -829,6 +1031,7 @@ export class Terrain3DScene {
 
     // Camera
     const { azimuth, polar, distance, cx, cy, cz } = this.cam;
+    this.root.dataset.cameraState = `${azimuth.toFixed(4)},${polar.toFixed(4)},${distance.toFixed(4)},${cx.toFixed(4)},${cz.toFixed(4)}`;
     const camX = cx + distance * Math.sin(polar) * Math.sin(azimuth);
     const camY = cy + distance * Math.cos(polar);
     const camZ = cz + distance * Math.sin(polar) * Math.cos(azimuth);
@@ -871,6 +1074,9 @@ export class Terrain3DScene {
     const uConInt = gl.getUniformLocation(this.prog, 'u_contourInt');
     const uConCol = gl.getUniformLocation(this.prog, 'u_contourCol');
     const uCon    = gl.getUniformLocation(this.prog, 'u_contours');
+    const uTime   = gl.getUniformLocation(this.prog, 'u_time');
+    const uSea    = gl.getUniformLocation(this.prog, 'u_seaLevel');
+    const uWater  = gl.getUniformLocation(this.prog, 'u_waterEnabled');
     gl.uniformMatrix4fv(uMVP, false, mvp);
     gl.uniformMatrix3fv(uNmat, false, nmat);
     gl.uniform3fv(uLight, lightDir);
@@ -878,6 +1084,9 @@ export class Terrain3DScene {
     gl.uniform1f(uConInt, contourInt);
     gl.uniform3fv(uConCol, cColor);
     gl.uniform1i(uCon, contours);
+    gl.uniform1f(uTime, performance.now() / 1000);
+    gl.uniform1f(uSea, (this.terrCfg.water?.seaLevel ?? 0) <= this.minElev ? 0 : ((this.terrCfg.water?.seaLevel ?? 0) - this.minElev) / Math.max(1, this.maxElev - this.minElev));
+    gl.uniform1f(uWater, this.terrCfg.water?.enabled ? 1 : 0);
 
     const aPos  = gl.getAttribLocation(this.prog, 'a_pos');
     const aNorm = gl.getAttribLocation(this.prog, 'a_normal');
@@ -921,7 +1130,7 @@ export class Terrain3DScene {
       const wCol = gl.getUniformLocation(this.wireProg, 'u_color');
       gl.uniformMatrix4fv(wMVP, false, mvp);
       const wc = parseHexRGB(cfg.wireframeColor ?? '#ffffff');
-      gl.uniform4f(wCol, wc[0], wc[1], wc[2], 0.18);
+      gl.uniform4f(wCol, wc[0], wc[1], wc[2], clamp(cfg.wireframeOpacity ?? .18, 0, 1));
       const waPos = gl.getAttribLocation(this.wireProg, 'a_pos');
       for (const tile of this.tiles) {
         gl.bindBuffer(gl.ARRAY_BUFFER, tile.posBuffer);
@@ -930,9 +1139,344 @@ export class Terrain3DScene {
         gl.drawElements(gl.LINES, tile.wIndexCount, idxType, 0);
       }
     }
+    this.drawOverlays(mvp, w / dpr, h / dpr, dpr);
+  }
+
+  private drawOverlays(mvp: Mat4, width: number, height: number, dpr: number): void {
+    const ctx = this.overlayCanvas.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    this.overlayHitTargets = [];
+    const overlays = this.terrCfg.overlays;
+    if (!overlays) {
+      this.root.dataset.rfBubbleCount = '0';
+      this.root.dataset.rfRingCount = '0';
+      this.updateFlightHud();
+      return;
+    }
+    this.root.dataset.rfBubbleCount = String((overlays.zones ?? []).filter(zone => zone.kind === 'rfBubble').length);
+    this.root.dataset.rfRingCount = String((overlays.zones ?? []).filter(zone => zone.kind === 'rfRings').length);
+    const displayNodes = (overlays.nodes ?? []).map((node) => {
+      const display = this.overlayDisplayNodes.get(node.id)?.current;
+      return display ? { ...node, x: display.x, y: display.y, z: display.z, data: { ...node.data, headingDeg: display.headingDeg, speedKts: display.speedKts, altitudeM: display.altitudeM, linkQualityPct: display.linkQualityPct, confidencePct: display.confidencePct } } : node;
+    });
+    const world = (point: { x: number; y: number; z: number }) => {
+      return projectM4(mvp, this.toTerrainWorld(point), width, height);
+    };
+    for (const track of overlays.tracks ?? []) {
+      const points = track.points.map(world).filter(point => point.visible);
+      if (points.length < 2) continue;
+      ctx.save();
+      ctx.strokeStyle = withAlpha(track.color ?? '#ef4444', .9);
+      ctx.shadowColor = track.color ?? '#ef4444'; ctx.shadowBlur = track.dashed ? 0 : 6;
+      ctx.lineWidth = track.width ?? 2;
+      if (track.dashed) ctx.setLineDash([6, 4]);
+      ctx.beginPath(); points.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y)); ctx.stroke();
+      ctx.restore();
+    }
+    for (const zone of overlays.zones ?? []) {
+      if (zone.kind === 'rfRings' && zone.center && zone.radiusX && zone.radiusY) {
+        const center = world(zone.center);
+        const east = world({ x: zone.center.x + zone.radiusX, y: zone.center.y, z: zone.center.z });
+        const north = world({ x: zone.center.x, y: zone.center.y + zone.radiusY, z: zone.center.z });
+        if (!center.visible) continue;
+        const radiusX = Math.max(12, Math.hypot(east.x - center.x, east.y - center.y));
+        const radiusY = Math.max(8, Math.hypot(north.x - center.x, north.y - center.y));
+        const color = zone.color ?? '#38bdf8';
+        const opacity = clamp(zone.opacity ?? .52, .12, .9) * clamp(zone.confidence ?? 1, .2, 1);
+        ctx.save();
+        ctx.strokeStyle = withAlpha(color, opacity);
+        ctx.lineWidth = 1;
+        for (const scale of [.34, .67, 1]) {
+          ctx.globalAlpha = .42 + scale * .42;
+          ctx.beginPath(); ctx.ellipse(center.x, center.y, radiusX * scale, radiusY * scale, 0, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = color;
+        ctx.beginPath(); ctx.arc(center.x, center.y, 2.5, 0, Math.PI * 2); ctx.fill();
+        if (zone.label) {
+          ctx.font = '700 9px Inter,"Segoe UI",sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(zone.label, center.x, center.y - radiusY - 6);
+        }
+        ctx.restore();
+        continue;
+      }
+      if (zone.kind === 'rfBubble' && zone.center && zone.radiusX && zone.radiusY && zone.radiusZ) {
+        const center = world(zone.center);
+        const east = world({ x: zone.center.x + zone.radiusX, y: zone.center.y, z: zone.center.z });
+        const north = world({ x: zone.center.x, y: zone.center.y + zone.radiusY, z: zone.center.z });
+        const top = world({ x: zone.center.x, y: zone.center.y, z: zone.center.z + zone.radiusZ });
+        const bottom = world({ x: zone.center.x, y: zone.center.y, z: zone.center.z - zone.radiusZ });
+        if (!center.visible) continue;
+        const radiusX = Math.max(18, Math.hypot(east.x - center.x, east.y - center.y));
+        const groundRadiusY = Math.max(12, Math.hypot(north.x - center.x, north.y - center.y));
+        const verticalRadius = Math.max(10, Math.hypot(top.x - bottom.x, top.y - bottom.y) * .5);
+        const radiusY = Math.max(groundRadiusY * .62, verticalRadius);
+        const color = zone.color ?? '#38bdf8';
+        const opacity = clamp(zone.opacity ?? .24, .04, .48);
+        const confidence = clamp(zone.confidence ?? 1, .1, 1);
+        const intensity = clamp(zone.intensity ?? 1, .1, 1);
+        ctx.save();
+        ctx.fillStyle = withAlpha(color, opacity * .12 * intensity);
+        ctx.beginPath(); ctx.ellipse(center.x, center.y, radiusX, radiusY, 0, 0, Math.PI * 2); ctx.fill();
+        for (let layer = -1; layer <= 1; layer += 1) {
+          const normalized = layer / 1.45;
+          const ringCenter = world({ x: zone.center.x, y: zone.center.y, z: zone.center.z + normalized * zone.radiusZ });
+          if (!ringCenter.visible) continue;
+          const scale = Math.sqrt(Math.max(.06, 1 - normalized * normalized));
+          ctx.strokeStyle = withAlpha(color, opacity * confidence * (layer === 0 ? .82 : .34));
+          ctx.lineWidth = layer === 0 ? 1.35 : .7;
+          ctx.setLineDash(layer === 0 ? [] : [5, 7]);
+          ctx.beginPath(); ctx.ellipse(ringCenter.x, ringCenter.y, radiusX * scale, groundRadiusY * scale, 0, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        ctx.strokeStyle = withAlpha(color, opacity * confidence * .72);
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.ellipse(center.x, center.y, radiusX, radiusY, 0, 0, Math.PI * 2); ctx.stroke();
+        if (zone.label) {
+          ctx.fillStyle = color; ctx.font = '700 9px Inter,"Segoe UI",sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(zone.label, center.x, center.y - radiusY - 7);
+        }
+        ctx.restore();
+        continue;
+      }
+      const points = zone.points.map(world).filter(point => point.visible);
+      if (points.length < 3) continue;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(points[0]!.x, points[0]!.y);
+      points.slice(1).forEach(point => ctx.lineTo(point.x, point.y));
+      ctx.closePath();
+      ctx.fillStyle = withAlpha(zone.color ?? '#ef4444', .14);
+      ctx.strokeStyle = withAlpha(zone.color ?? '#ef4444', .9);
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([7, 5]);
+      ctx.fill(); ctx.stroke();
+      if (zone.label) {
+        const center = points.reduce((acc, point) => ({ x: acc.x + point.x / points.length, y: acc.y + point.y / points.length }), { x: 0, y: 0 });
+        ctx.fillStyle = zone.color ?? '#ef4444';
+        ctx.font = '700 10px "JetBrains Mono",monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(zone.label, center.x, center.y);
+      }
+      ctx.restore();
+    }
+    const byId = new Map(displayNodes.map(node => [node.id, node]));
+    for (const edge of overlays.edges ?? []) {
+      const source = byId.get(edge.source); const target = byId.get(edge.target);
+      if (!source || !target) continue;
+      const a = world(source); const b = world(target);
+      if (!a.visible || !b.visible) continue;
+      ctx.save();
+      ctx.strokeStyle = withAlpha(edge.color ?? '#38bdf8', .92);
+      ctx.shadowColor = edge.color ?? '#38bdf8';
+      ctx.shadowBlur = 8;
+      ctx.lineWidth = edge.width ?? 2;
+      if (edge.dashed) ctx.setLineDash([8, 5]);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      ctx.restore();
+    }
+    for (const node of displayNodes) {
+      const point = world(node);
+      if (!point.visible) continue;
+      const color = node.color ?? '#38bdf8';
+      const radius = node.size ?? 5;
+      this.overlayHitTargets.push({ x: point.x, y: point.y, radius: Math.max(12, radius + 7), node });
+      ctx.save();
+      ctx.shadowColor = color; ctx.shadowBlur = node.data?.cameraView === true ? 3 : 10;
+      ctx.fillStyle = color; ctx.strokeStyle = '#e0f2fe'; ctx.lineWidth = 1.25;
+      if (node.data?.cameraView === true) {
+        const heading = Number(node.data.headingDeg ?? 0) * Math.PI / 180;
+        ctx.translate(point.x, point.y);
+        ctx.rotate(heading);
+        ctx.beginPath(); ctx.moveTo(0, -7); ctx.lineTo(4, 5); ctx.lineTo(0, 3); ctx.lineTo(-4, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.rotate(-heading);
+        ctx.translate(-point.x, -point.y);
+      } else if (node.data?.symbolType) {
+        const symbolType = String(node.data.symbolType);
+        ctx.translate(point.x, point.y);
+        ctx.beginPath();
+        if (symbolType === 'launch') { ctx.moveTo(0, -6); ctx.lineTo(6, 5); ctx.lineTo(-6, 5); ctx.closePath(); }
+        else if (symbolType === 'objective') { ctx.moveTo(0, -6); ctx.lineTo(6, 0); ctx.lineTo(0, 6); ctx.lineTo(-6, 0); ctx.closePath(); }
+        else if (symbolType === 'infrastructure') { ctx.rect(-5, -5, 10, 10); }
+        else { ctx.arc(0, 0, 5, 0, Math.PI * 2); }
+        ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(3, 0); ctx.moveTo(0, -3); ctx.lineTo(0, 3); ctx.stroke();
+        ctx.translate(-point.x, -point.y);
+      } else {
+        ctx.beginPath(); ctx.arc(point.x, point.y, radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+      if (node.label) {
+        ctx.font = '700 10px "JetBrains Mono",monospace';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#e0f2fe';
+        ctx.strokeStyle = 'rgba(2,7,17,.95)'; ctx.lineWidth = 3;
+        ctx.strokeText(node.label, point.x + radius + 5, point.y - 2);
+        ctx.fillText(node.label, point.x + radius + 5, point.y - 2);
+        if (node.detail) {
+          ctx.font = '700 8px "JetBrains Mono",monospace'; ctx.fillStyle = color;
+          ctx.fillText(node.detail, point.x + radius + 5, point.y + 10);
+        }
+      }
+      ctx.restore();
+    }
+    if (this.selectedOverlayId) {
+      const selected = this.overlayHitTargets.find(target => target.node.id === this.selectedOverlayId);
+      if (selected) this.showOverlayTooltip(selected);
+    }
+    this.overlayCanvas.dataset.hitTargetCount = String(this.overlayHitTargets.length);
+    this.overlayCanvas.dataset.hitTargets = JSON.stringify(this.overlayHitTargets.map(target => ({ id: target.node.id, x: Math.round(target.x), y: Math.round(target.y) })));
+    this.updateFlightHud();
+  }
+
+  private toTerrainWorld(point: { x: number; y: number; z: number }): Vec3 {
+    const s = this.terrainSpace;
+    return [
+      (((point.x - s.minX) / Math.max(1e-9, s.maxX - s.minX)) * 2 - 1) * s.scaleX,
+      ((point.z - s.minZ) / Math.max(1e-9, s.maxZ - s.minZ)) * s.exaggeration + .035,
+      (((point.y - s.minY) / Math.max(1e-9, s.maxY - s.minY)) * 2 - 1) * s.scaleZ,
+    ];
+  }
+
+  private applyFocusCamera(): void {
+    const focusId = this.firstPersonOverlayId || this.terrCfg.focusNodeId;
+    if (!focusId) return;
+    const node = this.terrCfg.overlays?.nodes?.find(candidate => candidate.id === focusId);
+    if (!node) return;
+    if (this.firstPersonOverlayId === node.id) {
+      this.applyFirstPersonCamera(node);
+      return;
+    }
+    const [x, y, z] = this.toTerrainWorld(node);
+    this.cam.cx = x; this.cam.cy = y; this.cam.cz = z;
+    this.cam.azimuth = -0.72; this.cam.polar = 1.02; this.cam.distance = 1.32;
+  }
+
+  private applyFirstPersonCamera(node: TerrainOverlayNode): void {
+    const target = this.firstPersonCameraForNode(node);
+    if (!this.desiredFlightCam) this.cam = { ...target };
+    this.desiredFlightCam = target;
+  }
+
+  private firstPersonCameraForNode(node: TerrainOverlayNode): TerrainCamera {
+    const [x, y, z] = this.toTerrainWorld(node);
+    const heading = Number(node.data?.headingDeg ?? 0) * Math.PI / 180;
+    const forward = .30;
+    const down = .13;
+    const distance = Math.hypot(forward, down);
+    return {
+      ...this.cam,
+      cx: x + Math.sin(heading) * forward,
+      cy: y - down,
+      cz: z + Math.cos(heading) * forward,
+      azimuth: heading + Math.PI,
+      distance,
+      polar: Math.acos(down / distance),
+    };
+  }
+
+  private applySensorConfig(): void {
+    if (!this.firstPersonOverlayId || this.sensorMode === 'optical') {
+      this.terrCfg.colormap = 'hypsometric';
+      this.terrCfg.colorRamp = undefined;
+      return;
+    }
+    if (this.sensorMode === 'night') {
+      this.terrCfg.colormap = 'gray';
+      this.terrCfg.colorRamp = ['#000803', '#00230c', '#006c25', '#32d75c', '#dcffe5'];
+      return;
+    }
+    if (this.sensorMode === 'thermal') {
+      this.terrCfg.colormap = 'thermal';
+      this.terrCfg.colorRamp = undefined;
+      return;
+    }
+    this.terrCfg.colormap = 'gray';
+    this.terrCfg.colorRamp = ['#010304', '#101a21', '#51626c', '#b8c8d1', '#f2f7fa'];
+  }
+
+  private setSensorMode(mode: 'optical' | 'night' | 'thermal' | 'lowLight'): void {
+    if (this.sensorMode === mode) return;
+    this.sensorMode = mode;
+    const camera = { ...this.cam };
+    const desired = this.desiredFlightCam ? { ...this.desiredFlightCam } : null;
+    this.applySensorConfig();
+    if (this.sourcePoints.length) this.buildTerrain(this.sourcePoints, this.terrCfg);
+    this.cam = camera;
+    this.desiredFlightCam = desired;
+    this.dirty = true;
+  }
+
+  private leaveFlightView(): void {
+    const needsTerrainRestore = this.sensorMode !== 'optical';
+    const camera = { ...this.cam };
+    this.firstPersonOverlayId = '';
+    this.desiredFlightCam = null;
+    this.sensorMode = 'optical';
+    this.flightHudEl.style.display = 'none';
+    delete this.root.dataset.cameraMode;
+    delete this.root.dataset.flightPhase;
+    this.applySensorConfig();
+    if (needsTerrainRestore && this.sourcePoints.length) {
+      this.buildTerrain(this.sourcePoints, this.terrCfg);
+      this.cam = camera;
+    }
+  }
+
+  private updateFlightHud(): void {
+    const sourceNode = this.terrCfg.overlays?.nodes?.find(candidate => candidate.id === this.firstPersonOverlayId);
+    if (!sourceNode) {
+      this.flightHudEl.style.display = 'none';
+      return;
+    }
+    const motion = this.overlayDisplayNodes.get(sourceNode.id)?.current;
+    const node = motion ? { ...sourceNode, z: motion.z, data: { ...sourceNode.data, headingDeg: motion.headingDeg, speedKts: motion.speedKts, altitudeM: motion.altitudeM, linkQualityPct: motion.linkQualityPct, confidencePct: motion.confidencePct } } : sourceNode;
+    const data = node.data ?? {};
+    const heading = Number(data.headingDeg ?? 0);
+    const altitude = Number(data.altitudeM ?? node.z);
+    const speed = Number(data.speedKts ?? 0);
+    const link = Number(data.linkQualityPct ?? 0);
+    const confidence = Number(data.confidencePct ?? 0);
+    const flightPhase = String(data.flightPhase ?? 'IN FLIGHT');
+    const hudColor = this.sensorMode === 'night' ? '#69ff88' : this.sensorMode === 'thermal' ? '#ffb347' : this.sensorMode === 'lowLight' ? '#d4e2ea' : '#dff5ff';
+    const modeLabel = this.sensorMode === 'night' ? 'NIGHT VISION' : this.sensorMode === 'thermal' ? 'THERMAL' : this.sensorMode === 'lowLight' ? 'LOW LIGHT' : 'OPTICAL';
+    this.flightHudEl.style.display = 'block';
+    this.flightHudEl.style.color = hudColor;
+    this.flightHudEl.dataset.sensorMode = this.sensorMode;
+    this.root.dataset.cameraMode = 'first-person';
+    this.root.dataset.flightPhase = flightPhase;
+    this.flightHudEl.innerHTML = `
+      <div style="position:absolute;inset:14px;border:1px solid ${withAlpha(hudColor, .34)};box-shadow:inset 0 0 42px rgba(0,0,0,.42)"></div>
+      <div style="position:absolute;left:50%;top:16px;transform:translateX(-50%);padding:4px 12px;border-top:1px solid ${hudColor};letter-spacing:.14em">HDG ${String(Math.round(heading)).padStart(3, '0')}°</div>
+      <div style="position:absolute;right:22px;top:18px;display:flex;gap:3px;pointer-events:auto">${([['optical','OPT'],['night','NV'],['thermal','THM'],['lowLight','LL']] as const).map(([mode,label]) => `<button type="button" data-terrain-hud-sensor="${mode}" style="padding:3px 6px;border:1px solid ${this.sensorMode === mode ? hudColor : withAlpha(hudColor,.35)};background:${this.sensorMode === mode ? withAlpha(hudColor,.18) : 'rgba(0,0,0,.42)'};color:${hudColor};font:700 9px Inter,Segoe UI,sans-serif;cursor:pointer">${label}</button>`).join('')}</div>
+      <div style="position:absolute;left:24px;top:50%;transform:translateY(-50%);line-height:1.7">SPD<br><b style="font-size:16px">${Math.round(speed)}</b> KT</div>
+      <div style="position:absolute;right:24px;top:50%;transform:translateY(-50%);text-align:right;line-height:1.7">ALT<br><b style="font-size:16px">${Math.round(altitude)}</b> M</div>
+      <div style="position:absolute;left:50%;top:50%;width:108px;height:54px;transform:translate(-50%,-50%)"><i style="position:absolute;left:0;right:0;top:27px;border-top:1px solid ${hudColor}"></i><i style="position:absolute;left:53px;top:0;bottom:0;border-left:1px solid ${hudColor}"></i><i style="position:absolute;left:43px;top:17px;width:20px;height:20px;border:1px solid ${hudColor};border-radius:50%"></i></div>
+      <div style="position:absolute;left:24px;bottom:22px">LINK ${Math.round(link)}%</div>
+      <div style="position:absolute;right:24px;bottom:22px">TRACK ${Math.round(confidence)}%</div>
+      <div style="position:absolute;left:50%;bottom:20px;transform:translateX(-50%);letter-spacing:.16em">${modeLabel} · ${escapeTerrainHtml(flightPhase)} · ${escapeTerrainHtml(node.label ?? node.id)}</div>`;
+    this.hoverEl.querySelectorAll<HTMLButtonElement>('[data-terrain-sensor]').forEach((button) => {
+      const active = button.dataset.terrainSensor === this.sensorMode;
+      button.style.borderColor = active ? '#f8fafc' : '#40576a';
+      button.style.background = active ? '#203343' : '#07121c';
+      button.style.color = active ? '#fff' : '#a9bdca';
+    });
   }
 
   // ── Info overlay ─────────────────────────────────────────────────────────────
+
+  private updateSemanticInfoEl(): void {
+    const tileCount = this.tiles.length;
+    const buildingInfo = this.buildingCount > 0 ? `  //  ${this.buildingCount} bldgs` : '';
+    const zAxis = this.terrCfg.axes?.z;
+    const metricLabel = zAxis?.label ?? 'Elevation';
+    const metricUnit = zAxis?.unit ?? (zAxis ? '' : 'm');
+    const precision = Math.abs(this.maxElev - this.minElev) < 10 ? 2 : 0;
+    const metricRange = `${this.minElev.toFixed(precision)}-${this.maxElev.toFixed(precision)}${metricUnit ? ` ${metricUnit}` : ''}`;
+    this.infoEl.textContent = `${this.gridW}x${this.gridH}  //  ${tileCount} tile${tileCount !== 1 ? 's' : ''}${buildingInfo}  //  ${metricLabel} ${metricRange}`;
+  }
 
   private updateInfoEl(): void {
     const pts = this.gridW * this.gridH;
@@ -964,6 +1508,22 @@ export class Terrain3DScene {
 
   private readonly onDown = (e: PointerEvent) => {
     e.preventDefault();
+    const overlayTarget = this.findOverlayHit(e.clientX, e.clientY);
+    if (overlayTarget) {
+      this.selectedOverlayId = overlayTarget.node.id;
+      this.leaveFlightView();
+      if (overlayTarget.node.data?.cameraView === true) {
+        const [x, y, z] = this.toTerrainWorld(overlayTarget.node);
+        this.cam.cx = x; this.cam.cy = y; this.cam.cz = z;
+        this.cam.azimuth = -0.72; this.cam.polar = 1.02; this.cam.distance = 1.32;
+      }
+      this.showOverlayTooltip(overlayTarget);
+      this.dirty = true;
+      return;
+    }
+    this.selectedOverlayId = '';
+    this.leaveFlightView();
+    this.hoverEl.style.display = 'none';
     this.canvas.setPointerCapture(e.pointerId);
     this.dragMode = e.shiftKey || e.button === 2 ? 'pan' : 'orbit';
     this.lastPX = e.clientX; this.lastPY = e.clientY;
@@ -971,7 +1531,10 @@ export class Terrain3DScene {
   };
 
   private readonly onMove = (e: PointerEvent) => {
-    if (this.dragMode === 'none') return;
+    if (this.dragMode === 'none') {
+      this.updateHover(e);
+      return;
+    }
     const dx = e.clientX - this.lastPX;
     const dy = e.clientY - this.lastPY;
     this.lastPX = e.clientX; this.lastPY = e.clientY;
@@ -1001,6 +1564,10 @@ export class Terrain3DScene {
     this.canvas.style.cursor = 'grab';
   };
 
+  private readonly onLeave = () => {
+    if (this.dragMode === 'none' && !this.selectedOverlayId) this.hoverEl.style.display = 'none';
+  };
+
   private readonly onWheel = (e: WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 1.1 : 0.91;
@@ -1013,8 +1580,136 @@ export class Terrain3DScene {
     window.addEventListener('pointermove', this.onMove);
     window.addEventListener('pointerup', this.onUp);
     this.canvas.addEventListener('wheel', this.onWheel, { passive: false });
+    this.canvas.addEventListener('pointerleave', this.onLeave);
     this.canvas.addEventListener('contextmenu', e => e.preventDefault());
   }
+
+  private renderAxes(): void {
+    const axes = this.terrCfg.axes;
+    if (!axes) {
+      this.axesEl.replaceChildren();
+      return;
+    }
+    const label = (axis: { label: string; unit?: string }) => `${axis.label}${axis.unit ? ` (${axis.unit})` : ''}`;
+    const tickValues = (axis: { min?: number; max?: number; tickCount?: number }) => {
+      if (!Number.isFinite(axis.min) || !Number.isFinite(axis.max)) return [];
+      const count = Math.max(2, axis.tickCount ?? 5);
+      return Array.from({ length: count }, (_, index) => Number(axis.min) + (Number(axis.max) - Number(axis.min)) * index / (count - 1));
+    };
+    const formatTick = (value: number) => Math.abs(value) >= 100 ? value.toFixed(0) : Math.abs(value) >= 10 ? value.toFixed(2) : value.toFixed(3);
+    const xTicks = tickValues(axes.x);
+    const yTicks = tickValues(axes.y);
+    const zTicks = tickValues(axes.z);
+    const xColor = axes.x.color ?? '#67e8f9'; const yColor = axes.y.color ?? '#a5b4fc'; const zColor = axes.z.color ?? '#fbbf24';
+    this.axesEl.innerHTML = `
+      <div style="position:absolute;left:14px;right:14px;bottom:12px;height:24px;border-bottom:1px solid ${xColor}">
+        <b style="position:absolute;left:0;bottom:12px;color:${xColor}">X · ${label(axes.x)}</b>
+        ${xTicks.map((value, index) => `<i style="position:absolute;left:${index / Math.max(1,xTicks.length - 1) * 100}%;bottom:-2px;transform:translateX(-50%);font-style:normal;color:${xColor};opacity:.76">${formatTick(value)}</i>`).join('')}
+      </div>
+      <div style="position:absolute;left:8px;top:44px;bottom:46px;width:42px;border-left:1px solid ${yColor}">
+        <b style="position:absolute;left:5px;top:-17px;color:${yColor}">Y · ${label(axes.y)}</b>
+        ${yTicks.map((value, index) => `<i style="position:absolute;left:5px;top:${(1 - index / Math.max(1,yTicks.length - 1)) * 100}%;transform:translateY(-50%);font-style:normal;color:${yColor};opacity:.76">${formatTick(value)}</i>`).join('')}
+      </div>
+      <div style="position:absolute;right:8px;top:44px;bottom:46px;width:52px;border-right:1px solid ${zColor};text-align:right">
+        <b style="position:absolute;right:5px;top:-17px;color:${zColor}">Z · ${label(axes.z)}</b>
+        ${zTicks.map((value, index) => `<i style="position:absolute;right:5px;top:${(1 - index / Math.max(1,zTicks.length - 1)) * 100}%;transform:translateY(-50%);font-style:normal;color:${zColor};opacity:.76">${formatTick(value)}</i>`).join('')}
+      </div>`;
+  }
+
+  private updateHover(event: PointerEvent): void {
+    if (this.firstPersonOverlayId) {
+      this.hoverEl.style.display = 'none';
+      return;
+    }
+    const overlayTarget = this.findOverlayHit(event.clientX, event.clientY);
+    if (overlayTarget) {
+      this.showOverlayTooltip(overlayTarget);
+      return;
+    }
+    if (this.selectedOverlayId) {
+      const selected = this.overlayHitTargets.find(target => target.node.id === this.selectedOverlayId);
+      if (selected) this.showOverlayTooltip(selected);
+      return;
+    }
+    if (this.terrCfg.pointTooltip === false) {
+      this.hoverEl.style.display = 'none';
+      return;
+    }
+    if (!this.sourcePoints.length || this.gridW < 1 || this.gridH < 1) return;
+    const rect = this.canvas.getBoundingClientRect();
+    const u = clamp((event.clientX - rect.left) / Math.max(1, rect.width), 0, 1);
+    const v = clamp((event.clientY - rect.top) / Math.max(1, rect.height), 0, 1);
+    const column = Math.round(u * (this.gridW - 1));
+    const row = Math.round((1 - v) * (this.gridH - 1));
+    const point = this.sourcePoints[Math.min(this.sourcePoints.length - 1, row * this.gridW + column)];
+    if (!point) return;
+    const axes = this.terrCfg.axes;
+    const format = (value: number, unit?: string) => `${Math.abs(value) >= 100 ? value.toFixed(0) : value.toFixed(3)}${unit ? ` ${unit}` : ''}`;
+    this.hoverEl.innerHTML = `${axes?.x.label ?? 'X'} <b>${format(point.x, axes?.x.unit)}</b><br>${axes?.y.label ?? 'Y'} <b>${format(point.y, axes?.y.unit)}</b><br>${axes?.z.label ?? 'Z'} <b>${format(point.z, axes?.z.unit)}</b>`;
+    this.hoverEl.style.left = `${clamp(event.clientX - rect.left + 14, 8, Math.max(8, rect.width - 180))}px`;
+    this.hoverEl.style.top = `${clamp(event.clientY - rect.top + 14, 8, Math.max(8, rect.height - 86))}px`;
+    this.hoverEl.style.display = 'block';
+  }
+
+  private findOverlayHit(clientX: number, clientY: number): { x: number; y: number; radius: number; node: TerrainOverlayNode } | undefined {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    return [...this.overlayHitTargets].reverse().find(target => Math.hypot(target.x - x, target.y - y) <= target.radius);
+  }
+
+  private showOverlayTooltip(target: { x: number; y: number; node: TerrainOverlayNode }): void {
+    const node = target.node;
+    const rows = Object.entries(node.data ?? {}).filter(([key]) => key !== 'cameraView').map(([key, value]) => `<div style="display:flex;justify-content:space-between;gap:18px"><span style="color:#7893aa">${escapeTerrainHtml(key.replace(/([A-Z])/g, ' $1').toUpperCase())}</span><b>${escapeTerrainHtml(String(value))}</b></div>`).join('');
+    const pinned = this.selectedOverlayId === node.id;
+    const cameraButton = pinned && node.data?.cameraView === true ? `<button type="button" data-terrain-first-person="${escapeTerrainHtml(node.id)}" style="width:100%;margin-top:8px;padding:7px 9px;border:1px solid #ef4444;background:#240b10;color:#fee2e2;font:700 10px Inter,Segoe UI,sans-serif;cursor:pointer">${this.firstPersonOverlayId === node.id ? 'DRONE CAMERA ACTIVE' : 'DRONE CAMERA VIEW'}</button>` : '';
+    const sensors = pinned && node.data?.cameraView === true ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px">${([
+      ['optical', 'OPTICAL'], ['night', 'NIGHT VISION'], ['thermal', 'THERMAL'], ['lowLight', 'LOW LIGHT'],
+    ] as const).map(([mode, label]) => `<button type="button" data-terrain-sensor="${mode}" style="padding:6px 4px;border:1px solid ${this.sensorMode === mode ? '#f8fafc' : '#40576a'};background:${this.sensorMode === mode ? '#203343' : '#07121c'};color:${this.sensorMode === mode ? '#fff' : '#a9bdca'};font:700 9px Inter,Segoe UI,sans-serif;cursor:pointer">${label}</button>`).join('')}</div>` : '';
+    this.hoverEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:5px"><strong style="color:${node.color ?? '#38bdf8'}">${escapeTerrainHtml(node.label ?? node.id)}</strong><span style="color:#607d94">${pinned ? 'PINNED' : 'LIVE'}</span></div>${node.detail ? `<div style="margin-bottom:6px;color:#b9d4e6">${escapeTerrainHtml(node.detail)}</div>` : ''}${rows}<div style="margin-top:6px;padding-top:5px;border-top:1px solid rgba(125,211,252,.16);color:#607d94">${escapeTerrainHtml(node.id)} · click to pin</div>${cameraButton}`;
+    this.hoverEl.insertAdjacentHTML('beforeend', sensors);
+    this.hoverEl.style.left = `${clamp(target.x + 14, 8, Math.max(8, this.chartArea.width - 230))}px`;
+    this.hoverEl.style.top = `${clamp(target.y - 18, 8, Math.max(8, this.chartArea.height - 190))}px`;
+    this.hoverEl.style.display = 'block';
+    this.hoverEl.style.pointerEvents = pinned ? 'auto' : 'none';
+  }
+
+  private readonly onTooltipClick = (event: MouseEvent) => {
+    const sensorButton = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-terrain-sensor]');
+    if (sensorButton) {
+      event.stopPropagation();
+      const mode = sensorButton.dataset.terrainSensor;
+      const node = this.terrCfg.overlays?.nodes?.find(candidate => candidate.id === this.selectedOverlayId);
+      if (node?.data?.cameraView === true) {
+        this.firstPersonOverlayId = node.id;
+        this.applyFirstPersonCamera(node);
+      }
+      if (mode === 'optical' || mode === 'night' || mode === 'thermal' || mode === 'lowLight') this.setSensorMode(mode);
+      this.selectedOverlayId = '';
+      this.hoverEl.style.display = 'none';
+      return;
+    }
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-terrain-first-person]');
+    if (!button) return;
+    event.stopPropagation();
+    const node = this.terrCfg.overlays?.nodes?.find(candidate => candidate.id === button.dataset.terrainFirstPerson);
+    if (!node) return;
+    this.selectedOverlayId = node.id;
+    this.firstPersonOverlayId = node.id;
+    this.applyFirstPersonCamera(node);
+    this.dirty = true;
+    this.selectedOverlayId = '';
+    this.hoverEl.style.display = 'none';
+  };
+
+  private readonly onFlightHudPointerDown = (event: PointerEvent) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-terrain-hud-sensor]');
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const mode = button.dataset.terrainHudSensor;
+    if (mode === 'optical' || mode === 'night' || mode === 'thermal' || mode === 'lowLight') this.setSensorMode(mode);
+  };
 }
 
 function parsePointColor(input: unknown): [number, number, number] | null {
@@ -1025,6 +1720,20 @@ function parsePointColor(input: unknown): [number, number, number] | null {
     return parseHexRGB(input);
   }
   return null;
+}
+
+function withAlpha(color: string, alpha: number): string {
+  if (!color.startsWith('#')) return color;
+  const [r, g, b] = parseHexRGB(color).map(value => Math.round(value * 255));
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function escapeTerrainHtml(value: string): string {
+  return value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!);
+}
+
+function shortestAngle(value: number): number {
+  return Math.atan2(Math.sin(value), Math.cos(value));
 }
 
 function clamp(value: number, min: number, max: number): number {

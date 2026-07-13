@@ -25,9 +25,8 @@ export default defineConfig({
         'src/animations/AnimationEngine.ts',
         'src/animations/TimelineControls.ts',
         'src/animations/TimelinePlayback.ts',
-        // Framework-specific adapter glue — requires DOM/MUI/StyleX runtime
-        'src/adapters/mui/**',
-        'src/adapters/stylex/**',
+        // Framework-specific adapter glue requires a browser runtime.
+        'src/adapters/styler/**',
         'src/adapters/webcomponent/**',
       ],
       thresholds: {

@@ -84,7 +84,27 @@ export interface ChartHandle {
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
-export interface ChartProps {
+export interface ChartProps extends Omit<Partial<ChartConfig>,
+  'container'
+  | 'series'
+  | 'title'
+  | 'subtitle'
+  | 'width'
+  | 'height'
+  | 'renderer'
+  | 'theme'
+  | 'legend'
+  | 'tooltip'
+  | 'animation'
+  | 'timeline'
+  | 'interaction'
+  | 'annotations'
+  | 'export'
+  | 'accessibility'
+  | 'responsive'
+  | 'plugins'
+  | 'events'
+> {
   /** Array of data series */
   series: SeriesConfig[];
   /** Chart title */
@@ -192,6 +212,7 @@ export const Chart = memo(
       onSeriesToggle,
       onSelection,
       events,
+      ...passthroughConfig
     } = props;
 
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -226,6 +247,7 @@ export const Chart = memo(
 
       return {
         ...providerDefaults,
+        ...passthroughConfig,
         series,
         title: title ? { text: title } : providerDefaults.title,
         subtitle: subtitle ? { text: subtitle } : providerDefaults.subtitle,
@@ -274,14 +296,9 @@ export const Chart = memo(
     useEffect(() => {
       if (!engineRef.current || !ready) return;
       const config = buildConfig();
-      // Strip undefined values so they don't erase previously-set config keys.
-      // e.g. if `legend` prop is not passed, we should NOT overwrite
-      // the engine's current legend config with `undefined`.
-      const cleaned: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(config)) {
-        if (v !== undefined) cleaned[k] = v;
-      }
-      engineRef.current.update(cleaned as Partial<ChartConfig>);
+      // Undefined optional values intentionally reset previously supplied
+      // options, keeping the imperative engine aligned with declarative props.
+      engineRef.current.update(config);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       series, title, subtitle, renderer, theme, xAxis, yAxis,

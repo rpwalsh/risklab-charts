@@ -1,6 +1,7 @@
 {
   "name": "@risklab/charts-vanilla",
   "version": "1.0.0",
+  "type": "module",
   "description": "Vanilla adapter package for @risklab/charts.",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -17,11 +18,10 @@
     "dist",
     "README.md",
     "LICENSE",
-    "NOTICE",
-    "LICENSE.txt"
+    "NOTICE"
   ],
   "scripts": {
-    "build": "rimraf dist && node ../../tools/ensure-root-build.mjs && node ../../tools/sync-chart-adapter.mjs vanilla && tsc -p tsconfig.build.json && tsc -p tsconfig.cjs.json",
+    "build": "rimraf dist && node ../../tools/ensure-root-build.mjs && node ../../tools/sync-chart-adapter.mjs vanilla && tsc -p tsconfig.build.json && tsc -p tsconfig.cjs.json && node ../../tools/finalize-output.mjs .",
     "clean": "rimraf dist",
     "typecheck": "node ../../tools/ensure-root-build.mjs && node ../../tools/sync-chart-adapter.mjs vanilla && tsc --noEmit",
     "prepublishOnly": "npm run clean && npm run build"
@@ -32,7 +32,7 @@
     "dataviz",
     "risklab"
   ],
-  "author": "RiskLab Contributors",
+  "author": "Ryan Walsh",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

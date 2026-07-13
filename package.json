@@ -1,6 +1,7 @@
 {
     "name": "@risklab/charts",
     "version": "1.0.0",
+    "type": "module",
     "private": false,
     "description": "@risklab/charts - Typed analytical charting engine with basic and advanced chart families for serious analytical software.",
     "workspaces": [
@@ -26,15 +27,15 @@
             "import": "./dist/esm/adapters/react/index.js",
             "require": "./dist/cjs/adapters/react/index.js"
         },
-        "./mui": {
-            "types": "./dist/types/adapters/mui/index.d.ts",
-            "import": "./dist/esm/adapters/mui/index.js",
-            "require": "./dist/cjs/adapters/mui/index.js"
+        "./styler": {
+            "types": "./dist/types/adapters/styler/index.d.ts",
+            "import": "./dist/esm/adapters/styler/index.js",
+            "require": "./dist/cjs/adapters/styler/index.js"
         },
-        "./stylex": {
-            "types": "./dist/types/adapters/stylex/index.d.ts",
-            "import": "./dist/esm/adapters/stylex/index.js",
-            "require": "./dist/cjs/adapters/stylex/index.js"
+        "./theme-object": {
+            "types": "./dist/types/adapters/theme-object/index.d.ts",
+            "import": "./dist/esm/adapters/theme-object/index.js",
+            "require": "./dist/cjs/adapters/theme-object/index.js"
         },
         "./basic": {
             "types": "./dist/types/charts/basic/index.d.ts",
@@ -179,25 +180,26 @@
         "LICENSE",
         "CHANGELOG.md",
         "SECURITY.md",
-        "NOTICE",
-        "LICENSE.txt"
+        "NOTICE"
     ],
     "funding": {
         "type": "github",
         "url": "https://github.com/sponsors/rpwalsh"
     },
     "scripts": {
-        "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.cjs.json",
+        "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.cjs.json && node tools/finalize-output.mjs .",
         "dev": "tsc -p tsconfig.build.json --watch",
-        "lint": "eslint src charts tests --ext .ts,.tsx",
+        "lint": "eslint src \"charts/*/src/**/*.{ts,tsx}\"",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
+        "test:browser": "playwright test",
         "clean": "rimraf dist",
         "prepublishOnly": "npm run clean && npm run build",
         "typecheck": "tsc --noEmit",
         "size": "node -e \"const fs=require('fs'),p=f=>fs.statSync(f).size;console.log('ESM entry:',Math.round(p('dist/esm/index.js')/1024)+'kB');console.log('CJS entry:',Math.round(p('dist/cjs/index.js')/1024)+'kB')\"",
-        "validate": "npm run clean && npm run build && npm run typecheck && npm run test && npm run size",
+        "check:source": "node tools/check-source.mjs",
+        "validate": "npm run check:source && npm run clean && npm run build && npm run typecheck && npm run test && npm run size",
         "build:charts-react": "npm run build --workspace=charts/react",
         "build:charts-vanilla": "npm run build --workspace=charts/vanilla",
         "build:charts-vue": "npm run build --workspace=charts/vue",
@@ -208,7 +210,7 @@
         "build:all": "npm run build && npm run build --workspace=charts/react && npm run build --workspace=charts/vanilla && npm run build --workspace=charts/vue && npm run build --workspace=charts/svelte && npm run build --workspace=charts/angular && npm run build --workspace=charts/lit && npm run build --workspace=charts/solid",
         "pack:all": "npm pack --dry-run && npm pack --dry-run --workspaces",
         "smoke:install": "node ./tools/smoke-install.mjs",
-        "release:check": "npm run validate && npm run build:all && npm run pack:all && npm run smoke:install",
+        "release:check": "npm run validate && npm run test:browser && npm run build:all && npm run pack:all && npm run smoke:install",
         "test:all": "npm run test",
         "validate:all": "npm run validate && npm run build --workspace=charts/react && npm run build --workspace=charts/vanilla && npm run build --workspace=charts/vue && npm run build --workspace=charts/svelte && npm run build --workspace=charts/angular && npm run build --workspace=charts/lit && npm run build --workspace=charts/solid"
     },
@@ -232,9 +234,8 @@
         "analytical-software",
         "dashboard",
         "workbench",
-        "mui",
-        "material-ui",
-        "stylex",
+        "styler",
+        "theme-object",
         "xstyle",
         "css-in-js",
         "smith-chart",
@@ -248,7 +249,7 @@
         "dark-mode",
         "risklab"
     ],
-    "author": "RiskLab Contributors",
+    "author": "Ryan Walsh",
     "license": "Apache-2.0",
     "repository": {
         "type": "git",
@@ -296,6 +297,7 @@
     },
     "devDependencies": {
         "@eslint/js": "^9.0.0",
+        "@playwright/test": "^1.55.0",
         "@types/node": "^25.5.0",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",

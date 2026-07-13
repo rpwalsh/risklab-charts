@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Lollipop (Dot-Plot / Dumbbell) Chart
 // Slender stem lines topped with circle markers — cleaner than bar charts
 // for sparse categorical comparisons. Also supports dumbbell (two-value) mode.

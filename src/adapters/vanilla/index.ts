@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Vanilla JS / No-Framework Adapter
 // The complete zero-dependency, zero-framework integration layer.
 //

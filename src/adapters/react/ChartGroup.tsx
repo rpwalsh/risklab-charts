@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — React: ChartGroup Component
 // Lays out multiple Chart instances in a grid/column and wires them together
 // with a SyncController for synchronized zoom/pan/crosshair.

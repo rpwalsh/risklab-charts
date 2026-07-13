@@ -1,7 +1,7 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Data Table Plugin
 // Renders an interactive HTML data table below the chart (or in a modal).
-// Matches Highcharts' "View data table" accessibility feature, but goes beyond:
+// Matches commercial charting' "View data table" accessibility feature, but goes beyond:
 //  - Column sorting by clicking headers (ascending ↕ descending)
 //  - CSV / clipboard copy
 //  - Pagination for large datasets

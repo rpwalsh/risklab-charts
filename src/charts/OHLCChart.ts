@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — OHLC Chart
 // Classic tick-mark OHLC bars (distinct from filled candlestick)
 // Each bar: vertical high-low line + left tick (open) + right tick (close)

@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Simplified World GeoJSON (110m Natural Earth, heavily simplified)
 // Contains ~50 country polygons as very low-resolution outlines.
 // Used as fallback when the user doesn't supply their own GeoJSON.

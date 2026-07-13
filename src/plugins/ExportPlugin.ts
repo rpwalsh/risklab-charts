@@ -1,7 +1,7 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Export Plugin
 // PNG / SVG / JPEG / PDF / CSV / JSON / XLSX export.
-// Surpasses Highcharts: PDF export without external libs (SVG-embedded PDF).
+// Surpasses commercial charting: PDF export without external libs (SVG-embedded PDF).
 // ============================================================================
 
 import type { RiskLabPlugin, ExportFormat } from '../core/types';
@@ -212,7 +212,7 @@ export async function exportChartToPDF(
   addObj(`<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>`);
 
   // Build PDF binary
-  let pdf = `%PDF-1.4\n%â¤ï¸\n`;
+  let pdf = `%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n`;
   const offsets: number[] = [];
 
   for (const obj of objects) {

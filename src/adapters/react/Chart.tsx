@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — React: <Chart /> Component
 // High-level declarative React component for rendering any chart type
 // ============================================================================
@@ -293,14 +293,9 @@ export const Chart = memo(
     useEffect(() => {
       if (!engineRef.current || !ready) return;
       const config = buildConfig();
-      // Strip undefined values so they don't erase previously-set config keys.
-      // e.g. if `legend` prop is not passed, we should NOT overwrite
-      // the engine's current legend config with `undefined`.
-      const cleaned: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(config)) {
-        if (v !== undefined) cleaned[k] = v;
-      }
-      engineRef.current.update(cleaned as Partial<ChartConfig>);
+      // Undefined optional values intentionally reset previously supplied
+      // options, keeping the imperative engine aligned with declarative props.
+      engineRef.current.update(config);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       series, title, subtitle, renderer, theme, xAxis, yAxis,

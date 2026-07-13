@@ -29,15 +29,11 @@ import { createTheme, resolveTheme, getSeriesColor } from '../themes/ThemeEngine
 import { defaultTheme } from '../themes/defaultTheme';
 import { darkTheme } from '../themes/darkTheme';
 import { pivotToChartConfig, pivotToMultiView, crossTabulate } from '../charts/PivotChart';
-import { createAngularChart, getAngularComponentSource, getAngularServiceSource } from '../adapters/angular/index';
-import { createSvelteChart, getSvelteComponentSource, getSvelte5ComponentSource, getSvelteStoreSource } from '../adapters/svelte/index';
-import { createLitChart, getLitComponentSource } from '../adapters/lit/index';
 import { parseCSV, fetchCSV, fetchJSON, mapJSON, createRestConnector, createWebSocketConnector, createSseConnector } from '../data/connectors';
-import pkg from '../../package.json';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
 
-const VERSION: string = pkg.version;
+const VERSION = '1.0.0';
 
 // ─── Namespace ────────────────────────────────────────────────────────────────
 
@@ -189,22 +185,17 @@ export const RiskLab = {
   },
 
   // ── Framework adapters ──────────────────────────────────────────────────────
-  adapters: {
     /**
      * Angular adapter utilities — imperative factory + source code generators.
      */
-    angular: { create: createAngularChart, componentSource: getAngularComponentSource, serviceSource: getAngularServiceSource },
 
     /**
      * Svelte adapter utilities — imperative factory + SFC source generators.
      */
-    svelte: { create: createSvelteChart, componentSource: getSvelteComponentSource, svelte5Source: getSvelte5ComponentSource, storeSource: getSvelteStoreSource },
 
     /**
      * Lit (Web Components) adapter utilities.
      */
-    lit: { create: createLitChart, componentSource: getLitComponentSource },
-  },
 } as const;
 
 export type RiskLabNamespace = typeof RiskLab;

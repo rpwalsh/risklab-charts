@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Timeline / Swimlane Chart
 // Horizontal event swimlanes — each series is a lane, data points are events
 // with a start and optional end value. Similar to Gantt but without dependencies.

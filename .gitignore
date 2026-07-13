@@ -12,6 +12,8 @@ dist-playground/
 artifacts/
 .codex-tmp/
 .playwright-cli/
+test-results/
+playwright-report/
 eslint-out.json
 eslint-tests.json
 *.bak

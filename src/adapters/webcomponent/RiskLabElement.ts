@@ -25,6 +25,9 @@ const OBSERVED_ATTRS = [
 ] as const;
 
 type ObservedAttr = typeof OBSERVED_ATTRS[number];
+const HTMLElementBase: typeof HTMLElement = typeof HTMLElement === 'undefined'
+  ? class {} as typeof HTMLElement
+  : HTMLElement;
 
 /**
  * `<risklab-chart>` custom element.
@@ -45,7 +48,7 @@ type ObservedAttr = typeof OBSERVED_ATTRS[number];
  * - `uc:ready` — engine is initialized
  * - `uc:click`, `uc:hover`, `uc:zoom`, `uc:select`
  */
-export class RiskLabChartElement extends HTMLElement {
+export class RiskLabChartElement extends HTMLElementBase {
   static get observedAttributes(): readonly string[] {
     return OBSERVED_ATTRS;
   }

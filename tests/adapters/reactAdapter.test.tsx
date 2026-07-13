@@ -2,6 +2,8 @@ import React, { act } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
 
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
 const mockEngine = {
   update: vi.fn(),
   destroy: vi.fn(),
@@ -22,7 +24,7 @@ vi.mock('../../src/core/Engine', () => ({
   Engine: vi.fn(() => mockEngine),
 }));
 
-import { RiskLabProvider, useChart, useRiskLabOptional } from '../../src/adapters/react';
+import { Chart, RiskLabProvider, useChart, useRiskLabOptional } from '../../src/adapters/react';
 import type { SeriesConfig } from '../../src/core/types';
 
 function ChartHarness({ series }: { series: SeriesConfig[] }) {
@@ -99,5 +101,20 @@ describe('React adapter surfaces', () => {
     });
 
     expect(container.querySelector('[data-theme]')?.getAttribute('data-theme')).toBe('default');
+  });
+
+  it('resets removed declarative options instead of retaining stale engine state', async () => {
+    const series: SeriesConfig[] = [
+      { id: 's1', name: 'Series 1', type: 'line', data: [{ x: 1, y: 10 }] },
+    ];
+    await act(async () => {
+      root.render(<Chart series={series} legend={{ enabled: true }} />);
+    });
+    mockEngine.update.mockClear();
+    await act(async () => {
+      root.render(<Chart series={series} />);
+    });
+    expect(mockEngine.update).toHaveBeenCalled();
+    expect(mockEngine.update.mock.calls.at(-1)?.[0]).toHaveProperty('legend', undefined);
   });
 });

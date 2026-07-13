@@ -27,7 +27,7 @@ export function useResponsiveChart(options: UseResponsiveChartOptions): void {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!engine || !containerRef.current) return;
+    if (!engine || !containerRef.current || typeof ResizeObserver === 'undefined') return;
 
     const observer = new ResizeObserver((entries) => {
       if (timerRef.current) clearTimeout(timerRef.current);

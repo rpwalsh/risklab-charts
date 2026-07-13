@@ -1,7 +1,7 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Marimekko Chart (Variable-Width Column / Mekko Chart)
 // Bars are variable-width (proportional to a second data dimension) AND
-// variable-height (100% stacked). Highcharts charges for this as "variwide".
+// variable-height (100% stacked). commercial charting charges for this as "variwide".
 // ============================================================================
 
 import type { BaseRenderer } from '../renderers/BaseRenderer';

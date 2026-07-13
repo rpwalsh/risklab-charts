@@ -1,14 +1,17 @@
 // ============================================================================
-// RiskLab Charts â€” Main Entry Point
+// RiskLab Charts — Main Entry Point
 // @risklab/charts
 // ============================================================================
 
-// â”€â”€â”€ Core â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Core ───────────────────────────────────────────────────────────────────
 export { Engine } from './core/Engine';
+export { LegacyChartAPI, legacyChart, legacyStockChart, fromLegacyChartOptions } from './adapters/legacy-config';
+export type { LegacyChartOptions, LegacySeriesOptions, LegacyAxisOptions, LegacyCompatibleChart, LegacyCompatibleSeries, LegacyChartPoint } from './adapters/legacy-config';
 export type { EngineInternalAPI, SyncableChart, EngineChartConfig } from './core/Engine';
 export { EventBus } from './core/EventBus';
 export { Registry, registry } from './core/Registry';
 export { DataPipeline, decimateLTTB, decimateMinMax } from './core/DataPipeline';
+export { SpatialIndex, nearestSortedIndex } from './core/SpatialIndex';
 export { SyncController, syncCharts } from './core/SyncController';
 export type { SyncOptions } from './core/SyncController';
 export type {
@@ -68,25 +71,25 @@ export type {
   ScaleType,
 } from './core/types';
 
-// â”€â”€â”€ Renderers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Renderers ──────────────────────────────────────────────────────────────
 export { BaseRenderer } from './renderers/BaseRenderer';
 export { SVGRenderer } from './renderers/SVGRenderer';
 export { CanvasRenderer } from './renderers/CanvasRenderer';
 
-// â”€â”€â”€ Scales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Scales ─────────────────────────────────────────────────────────────────
 export { createScale } from './scales/index';
 
-// â”€â”€â”€ Animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Animations ─────────────────────────────────────────────────────────────
 export { AnimationEngine } from './animations/AnimationEngine';
 export { TimelinePlayback } from './animations/TimelinePlayback';export type { TimelineState, TimelineChangeHandler } from './animations/TimelinePlayback';
 export { TimelineControls } from './animations/TimelineControls';
 export type { TimelineControlsConfig } from './animations/TimelineControls';
-// â”€â”€â”€ Themes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Themes ─────────────────────────────────────────────────────────────────
 export { defaultTheme } from './themes/defaultTheme';
 export { darkTheme } from './themes/darkTheme';
 export { resolveTheme, createTheme, getSeriesColor, createHighContrastTheme } from './themes/ThemeEngine';
 
-// â”€â”€â”€ Palettes (54 color schemes Ã— dark/light) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Palettes (54 color schemes × dark/light) ──────────────────────────────
 export {
   palettes,
   getPalette,
@@ -95,13 +98,13 @@ export {
   getAllThemes,
 } from './themes/palettes';
 
-// â”€â”€â”€ Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Components ─────────────────────────────────────────────────────────────
 export { renderAxes } from './components/Axis';
 export { renderLegend } from './components/Legend';
 export { renderTooltip, createTooltipHTML } from './components/Tooltip';
 export { renderAnnotations } from './components/Annotations';
 
-// â”€â”€â”€ Charts (Standard) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Charts (Standard) ─────────────────────────────────────────────────────
 export { renderChart } from './charts/index';
 export { BASIC_CHART_TYPES } from './charts/basic/supportedTypes';
 export type { BasicChartType } from './charts/basic/supportedTypes';
@@ -134,7 +137,7 @@ export type { VennConfig, VennSet, VennIntersection } from './charts/VennDiagram
 export { renderItemChart } from './charts/ItemChart';
 export type { ItemChartConfig, ItemSeriesConfig, ItemShape, ItemLayout } from './charts/ItemChart';
 
-// â”€â”€â”€ New Batch 2 Charts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── New Batch 2 Charts ──────────────────────────────────────────────────────
 export { renderStreamgraph } from './charts/StreamgraphChart';
 export { renderXRange } from './charts/XRangeChart';
 export type { XRangeDataPoint, XRangeConfig } from './charts/XRangeChart';
@@ -149,11 +152,11 @@ export type { ColumnRangeConfig, DumbbellConfig } from './charts/ColumnRangeChar
 export { renderBellCurve } from './charts/BellCurveChart';
 export type { BellCurveConfig } from './charts/BellCurveChart';
 
-// â”€â”€â”€ Stock Chart (Highcharts Stock equivalent) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Stock Chart (commercial charting Stock equivalent) ──────────────────────────────
 export { createStockChart } from './charts/StockChart';
 export type { StockChartConfig, IndicatorConfig } from './charts/StockChart';
 
-// â”€â”€â”€ Charts (Advanced / Specialized) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Charts (Advanced / Specialized) ────────────────────────────────────────
 export {
   renderPolarChart,
   renderSmithChart,
@@ -195,9 +198,9 @@ export type {
   RangeSelectorButton,
 } from './charts/advanced/index';
 
-// â”€â”€â”€ 3D Engine & Charts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── 3D Engine & Charts ────────────────────────────────────────────────────
 
-// â”€â”€â”€ Plugins â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Plugins ────────────────────────────────────────────────────────────────
 export {
   createPlugin,
   composePlugins,
@@ -235,13 +238,13 @@ export type {
 export { DataLabelsPlugin, renderDataLabels } from './plugins/DataLabelsPlugin';
 export type { DataLabelsConfig } from './plugins/DataLabelsPlugin';
 
-// â”€â”€â”€ Utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Utilities ──────────────────────────────────────────────────────────────
 export * as colorUtils from './utils/color';
 export * as mathUtils from './utils/math';
 export * as formatUtils from './utils/format';
 export { escapeHtml, sanitizeSVG, safeColor } from './utils/sanitize';
 
-// â”€â”€â”€ Boost Module (Web Worker data processing for 1M+ points) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Boost Module (Web Worker data processing for 1M+ points) ───────────────
 export {
   BoostWorker,
   lttbSync,
@@ -250,37 +253,37 @@ export {
 } from './boost/index';
 export type { BoostOptions, BoostOperation } from './boost/index';
 
-// â”€â”€â”€ Web Component adapter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Web Component adapter ───────────────────────────────────────────────────
 export { RiskLabChartElement, defineRiskLabElement } from './adapters/webcomponent/RiskLabElement';
 
-// â”€â”€â”€ Vue 3 Adapter: import from '@risklab/charts/vue' (peer dep: vue@^3) â”€â”€â”€â”€â”€
+// ─── Vue 3 Adapter: import from '@risklab/charts/vue' (peer dep: vue@^3) ─────
 // Framework adapters ship as dedicated packages instead of root subpaths:
 //   @risklab/charts-react, @risklab/charts-vue, @risklab/charts-svelte
 //   @risklab/charts-angular, @risklab/charts-lit, @risklab/charts-solid
 
-// â”€â”€â”€ StyleX / xstyle Adapter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── RiskLab Styler / xstyle Adapter ─────────────────────────────────────────────────
 export {
-  stylexToTheme,
+  stylerTokensToTheme,
   chartStyles,
   mergeClassNames,
-} from './adapters/stylex/index';
+} from './adapters/styler/index';
 export { themeToCSSVars, applyThemeCSSVars } from './themes/cssVars';
 
-// â”€â”€â”€ SDK â€” Fluent ChartBuilder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── SDK — Fluent ChartBuilder ───────────────────────────────────────────────
 export { ChartBuilder, BoundChartBuilder, chart, charts } from './sdk/index';
 export type { PointInput, NumericPair, DataInput } from './sdk/index';
 
-// â”€â”€â”€ Vanilla JS Adapter (zero-framework, works everywhere) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Vanilla JS Adapter (zero-framework, works everywhere) ──────────────────
 export { mount, autoInit, RiskLabAlpine, getStimulusControllerSource } from './adapters/vanilla/index';
 export type { VanillaChartInstance } from './adapters/vanilla/index';
 
-// â”€â”€â”€ Angular Adapter (Google) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Angular Adapter (Google) ────────────────────────────────────────────────
 
-// â”€â”€â”€ Svelte Adapter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Svelte Adapter ───────────────────────────────────────────────────────────
 
-// â”€â”€â”€ Lit Element Adapter (Google) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Lit Element Adapter (Google) ────────────────────────────────────────────
 
-// â”€â”€â”€ PivotChart â€” data-source driven cross-tabulation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PivotChart — data-source driven cross-tabulation ────────────────────────
 export { pivotToChartConfig, pivotToMultiView, crossTabulate } from './charts/PivotChart';
 export type {
   PivotConfig,
@@ -291,7 +294,7 @@ export type {
   PivotSortConfig,
 } from './charts/PivotChart';
 
-// â”€â”€â”€ DateTime Utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── DateTime Utilities ──────────────────────────────────────────────────────
 export {
   parseDate,
   detectTimeAxis,
@@ -316,7 +319,7 @@ export {
 } from './utils/datetime';
 export type { DateLike, TickIntervalDescriptor, TimeUnit } from './utils/datetime';
 
-// â”€â”€â”€ Data Connectors â€” CSV, JSON, REST, WebSocket, SSE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Data Connectors — CSV, JSON, REST, WebSocket, SSE ───────────────────────
 export {
   parseCSV,
   fetchCSV,
@@ -337,12 +340,14 @@ export type {
   SseConnectorOptions,
 } from './data/connectors';
 
-// â”€â”€â”€ RiskLab â€” top-level namespace (one import to rule them all) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── RiskLab — top-level namespace (one import to rule them all) ────────────────
 export { RiskLab } from './sdk/RiskLab';
 export type { RiskLabNamespace } from './sdk/RiskLab';
 // ——— Scenes (3D) ————————————————————————————————————————————————————————
 export { Graph3DScene, normalizeGraph3DSeries, GRAPH_3D_CHART_TYPES } from './scenes/index';
 export type { Graph3DChartType, Graph3DRenderableData } from './scenes/index';
+export { MISSION_DOCUMENT_VERSION, validateMissionDocument, missionPanelToChartConfig } from './mission/MissionDocument';
+export type { MissionDocument, MissionPanel, MissionDataset } from './mission/MissionDocument';
 export { Terrain3DScene, TERRAIN_3D_CHART_TYPES } from './scenes/index';
 export type { Terrain3DChartType } from './scenes/index';
 export { Challenge3DScene, CHALLENGE_3D_CHART_TYPES } from './scenes/index';

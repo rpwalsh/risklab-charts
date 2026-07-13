@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Core Engine
 // The central orchestrator: owns config, state, pipeline, renderer, plugins
 // ============================================================================
@@ -25,6 +25,7 @@ import type {
 import { EventBus } from './EventBus';
 import { registry } from './Registry';
 import { DataPipeline, type ProcessedSeries, type ProcessedDataPoint } from './DataPipeline';
+import { nearestSortedIndex, SpatialIndex } from './SpatialIndex';
 import { defaultTheme } from '../themes/defaultTheme';
 import { darkTheme } from '../themes/darkTheme';
 import { getAllThemes } from '../themes/palettes';
@@ -346,6 +347,19 @@ export class Engine {
   private container: HTMLElement | null = null;
   private resizeObserver?: ResizeObserver;
   private processedSeries: ProcessedSeries[] = [];
+  private readonly pointHitIndex = new SpatialIndex<{
+    series: ProcessedSeries;
+    point: DataPoint;
+    index: number;
+    pixelX: number;
+    pixelY: number;
+  }>(32);
+  private readonly sharedXIndex = new Map<string, Array<{
+    point: DataPoint;
+    index: number;
+    pixelX: number;
+    pixelY: number;
+  }>>();
   private theme: ThemeConfig;
   private activePlugins: RiskLabPlugin[] = [];
   private destroyed = false;
@@ -441,7 +455,13 @@ export class Engine {
     this.theme = this.resolveTheme(config.theme);
 
     // Apply plugin beforeInit hooks
-    this.config = this.applyPluginHook('beforeInit', config) ?? config;
+    const initialized = this.applyPluginHook('beforeInit', config) ?? config;
+    this.config = {
+      ...initialized,
+      series: initialized.series.map((series) => ({ ...series, data: [...series.data] })),
+      axes: initialized.axes?.map((axis) => ({ ...axis })),
+      annotations: initialized.annotations?.map((annotation) => ({ ...annotation })),
+    };
 
     // Initialize state
     this.state = this.createInitialState();
@@ -476,7 +496,17 @@ export class Engine {
 
   /** Update chart configuration and re-render */
   update(config: Partial<ChartConfig>): void {
-    this.config = { ...this.config, ...config };
+    this.config = {
+      ...this.config,
+      ...config,
+      ...(config.series
+        ? { series: config.series.map((series) => ({ ...series, data: [...series.data] })) }
+        : undefined),
+      ...(config.axes ? { axes: config.axes.map((axis) => ({ ...axis })) } : undefined),
+      ...(config.annotations
+        ? { annotations: config.annotations.map((annotation) => ({ ...annotation })) }
+        : undefined),
+    };
     if (config.theme) {
       this.theme = this.resolveTheme(config.theme);
     }
@@ -488,14 +518,20 @@ export class Engine {
 
   /** Replace all series data */
   setData(series: SeriesConfig[]): void {
-    this.config.series = series;
+    this.config = {
+      ...this.config,
+      series: series.map((item) => ({ ...item, data: [...item.data] })),
+    };
     this.bus.emit('dataUpdate', {});
     this.render();
   }
 
   /** Add a series dynamically */
   addSeries(series: SeriesConfig): void {
-    this.config.series.push(series);
+    this.config = {
+      ...this.config,
+      series: [...this.config.series, { ...series, data: [...series.data] }],
+    };
     this.bus.emit('dataUpdate', {});
     this.render();
   }
@@ -515,16 +551,16 @@ export class Engine {
     point: DataPoint,
     options: { shift?: boolean; redraw?: boolean; maxPoints?: number } = {},
   ): void {
-    const series = this.config.series.find((s) => s.id === seriesId);
-    if (!series) return;
-
-    series.data.push(point);
-
-    if (options.maxPoints != null && series.data.length > options.maxPoints) {
-      series.data.splice(0, series.data.length - options.maxPoints);
-    } else if (options.shift) {
-      series.data.shift();
-    }
+    const target = this.config.series.find((series) => series.id === seriesId);
+    if (!target) return;
+    let data = [...target.data, { ...point }];
+    if (options.maxPoints != null && data.length > options.maxPoints) {
+      data = data.slice(data.length - options.maxPoints);
+    } else if (options.shift) data = data.slice(1);
+    this.config = {
+      ...this.config,
+      series: this.config.series.map((series) => series.id === seriesId ? { ...series, data } : series),
+    };
 
     if (options.redraw !== false) {
       this.bus.emit('dataUpdate', { seriesId });
@@ -541,14 +577,16 @@ export class Engine {
     points: DataPoint[],
     options: { maxPoints?: number; redraw?: boolean } = {},
   ): void {
-    const series = this.config.series.find((s) => s.id === seriesId);
-    if (!series) return;
-
-    series.data.push(...points);
-
-    if (options.maxPoints != null && series.data.length > options.maxPoints) {
-      series.data.splice(0, series.data.length - options.maxPoints);
+    const target = this.config.series.find((series) => series.id === seriesId);
+    if (!target) return;
+    let data = [...target.data, ...points.map((point) => ({ ...point }))];
+    if (options.maxPoints != null && data.length > options.maxPoints) {
+      data = data.slice(data.length - options.maxPoints);
     }
+    this.config = {
+      ...this.config,
+      series: this.config.series.map((series) => series.id === seriesId ? { ...series, data } : series),
+    };
 
     if (options.redraw !== false) {
       this.bus.emit('dataUpdate', { seriesId });
@@ -560,26 +598,34 @@ export class Engine {
    * Update an existing data point by index in a series.
    */
   updatePoint(seriesId: string, index: number, update: Partial<DataPoint>): void {
-    const series = this.config.series.find((s) => s.id === seriesId);
-    if (!series || index < 0 || index >= series.data.length) return;
-    Object.assign(series.data[index]!, update);
+    const target = this.config.series.find((series) => series.id === seriesId);
+    if (!target || index < 0 || index >= target.data.length) return;
+    const data = target.data.map((point, pointIndex) => pointIndex === index ? { ...point, ...update } : point);
+    this.config = {
+      ...this.config,
+      series: this.config.series.map((series) => series.id === seriesId ? { ...series, data } : series),
+    };
     this.bus.emit('dataUpdate', { seriesId });
     this.render();
   }
 
   /** Remove a series by id */
   removeSeries(id: string): void {
-    this.config.series = this.config.series.filter((s) => s.id !== id);
+    this.config = { ...this.config, series: this.config.series.filter((series) => series.id !== id) };
     this.bus.emit('dataUpdate', {});
     this.render();
   }
 
   /** Toggle series visibility */
   toggleSeries(id: string): void {
-    const series = this.config.series.find((s) => s.id === id);
-    if (series) {
-      series.visible = series.visible === false ? true : false;
-      this.bus.emit(series.visible ? 'seriesShow' : 'seriesHide', { seriesId: id });
+    const target = this.config.series.find((series) => series.id === id);
+    if (target) {
+      const visible = target.visible === false;
+      this.config = {
+        ...this.config,
+        series: this.config.series.map((series) => series.id === id ? { ...series, visible } : series),
+      };
+      this.bus.emit(visible ? 'seriesShow' : 'seriesHide', { seriesId: id });
       this.render();
     }
   }
@@ -613,7 +659,10 @@ export class Engine {
 
   /** Get config */
   getConfig(): Readonly<ChartConfig> {
-    return this.config;
+    return {
+      ...this.config,
+      series: this.config.series.map((series) => ({ ...series, data: [...series.data] })),
+    };
   }
 
   /** Get the event bus (for advanced integrations) */
@@ -637,20 +686,26 @@ export class Engine {
       const scale = this.state.scales.get(axisId);
       if (scale) this.originalDomains.set(axisId, scale.domain);
     }
-    axis.min = min;
-    axis.max = max;
+    this.config = {
+      ...this.config,
+      axes: (this.config.axes ?? this.inferAxes()).map((candidate) =>
+        candidate.id === axisId ? { ...candidate, min, max } : candidate,
+      ),
+    };
     this.render();
     this.bus.emit('zoom', { payload: { axisId, min, max } });
   }
 
   /** Reset zoom for all axes */
   resetZoom(): void {
-    const axes = this.config.axes ?? this.inferAxes();
-    for (const axis of axes) {
-      // Clear min/max for any axis that was modified by zoom or pan
-      axis.min = undefined;
-      axis.max = undefined;
-    }
+    this.config = {
+      ...this.config,
+      axes: (this.config.axes ?? this.inferAxes()).map((axis) => ({
+        ...axis,
+        min: undefined,
+        max: undefined,
+      })),
+    };
     this.originalDomains.clear();
     this.panStartDomains.clear();
     this.state.zoomLevel = { x: 1, y: 1 };
@@ -660,17 +715,24 @@ export class Engine {
 
   /** Programmatically add/update an annotation */
   setAnnotation(annotation: AnnotationConfig): void {
-    if (!this.config.annotations) this.config.annotations = [];
-    const idx = this.config.annotations.findIndex(a => a.id === annotation.id);
-    if (idx >= 0) this.config.annotations[idx] = annotation;
-    else this.config.annotations.push(annotation);
+    const annotations = this.config.annotations ?? [];
+    const exists = annotations.some((candidate) => candidate.id === annotation.id);
+    this.config = {
+      ...this.config,
+      annotations: exists
+        ? annotations.map((candidate) => candidate.id === annotation.id ? { ...annotation } : candidate)
+        : [...annotations, { ...annotation }],
+    };
     this.render();
   }
 
   /** Remove an annotation by id */
   removeAnnotation(id: string): void {
     if (this.config.annotations) {
-      this.config.annotations = this.config.annotations.filter(a => a.id !== id);
+      this.config = {
+        ...this.config,
+        annotations: this.config.annotations.filter((annotation) => annotation.id !== id),
+      };
       this.render();
     }
   }
@@ -971,6 +1033,7 @@ export class Engine {
 
     // 2. Build scales
     this.buildScales();
+    this.rebuildPointHitIndex();
 
     // 3. Clear renderer
     this.renderer.clear();
@@ -1614,7 +1677,43 @@ export class Engine {
 
   // ── Hit Testing ───────────────────────────────────────────────────────────
 
+  private rebuildPointHitIndex(): void {
+    this.pointHitIndex.clear();
+    this.sharedXIndex.clear();
+    const indexedTypes = new Set([
+      'line', 'spline', 'stepLine', 'area', 'rangeArea', 'stackedArea',
+      'scatter', 'connectedScatter', 'bubble', 'sparkline', 'sparklineChart',
+      'errorBand', 'stripChart', 'oscilloscope',
+    ]);
+    for (const series of this.processedSeries) {
+      const xScale = this.state.scales.get(series.xAxisId ?? 'x0');
+      const yScale = this.state.scales.get(series.yAxisId ?? 'y0');
+      if (!xScale || !yScale) continue;
+      const data = (series.processedData ?? series.data) as ProcessedDataPoint[];
+      const horizontal: Array<{ point: DataPoint; index: number; pixelX: number; pixelY: number }> = [];
+      data.forEach((point, index) => {
+        const pixelX = xScale.convert(point.xNum ?? point.x);
+        const pixelY = yScale.convert(point.y1 ?? point.yNum ?? point.y);
+        if (!Number.isFinite(pixelX) || !Number.isFinite(pixelY)) return;
+        horizontal.push({ point, index, pixelX, pixelY });
+        if (!indexedTypes.has(series.type)) return;
+        const value = { series, point, index, pixelX, pixelY };
+        this.pointHitIndex.insert(pixelX, pixelY, value);
+      });
+      horizontal.sort((left, right) => left.pixelX - right.pixelX);
+      this.sharedXIndex.set(series.id, horizontal);
+    }
+  }
+
   private hitTestPoint(px: number, py: number): Array<{ series: ProcessedSeries; point: DataPoint; index: number; pixelX: number; pixelY: number }> {
+    const indexed = this.pointHitIndex.withinRadius(px, py, 20);
+    if (indexed.length > 0) {
+      const closestBySeries = new Map<string, (typeof indexed)[number]['value']>();
+      for (const hit of indexed) {
+        if (!closestBySeries.has(hit.value.series.id)) closestBySeries.set(hit.value.series.id, hit.value);
+      }
+      return [...closestBySeries.values()];
+    }
     const hits: Array<{ series: ProcessedSeries; point: DataPoint; index: number; pixelX: number; pixelY: number }> = [];
     const threshold = 20; // px
 
@@ -1905,23 +2004,26 @@ export class Engine {
       const yScale = this.state.scales.get(s.yAxisId ?? 'y0');
       if (!xScale || !yScale) continue;
 
-      const data = (s.processedData ?? s.data) as ProcessedDataPoint[];
+      const data = this.sharedXIndex.get(s.id) ?? [];
       if (data.length === 0) continue;
 
-      // Find point with closest x
-      let closestIdx = 0;
-      let closestDist = Infinity;
-      for (let i = 0; i < data.length; i++) {
-        const sx = xScale.convert(data[i].xNum ?? data[i].x);
-        const d = Math.abs(sx - px);
-        if (d < closestDist) { closestDist = d; closestIdx = i; }
-      }
+      const closestIdx = nearestSortedIndex(
+        data,
+        px,
+        (entry) => entry.pixelX,
+      );
+      if (closestIdx < 0) continue;
+      const closest = data[closestIdx]!;
+      const closestDist = Math.abs(closest.pixelX - px);
 
       if (closestDist < 40) {
-        const d = data[closestIdx];
-        const sx = xScale.convert(d.x);
-        const sy = yScale.convert(d.y1 ?? d.yNum ?? d.y);
-        hits.push({ series: s, point: d, index: closestIdx, pixelX: sx, pixelY: sy });
+        hits.push({
+          series: s,
+          point: closest.point,
+          index: closest.index,
+          pixelX: closest.pixelX,
+          pixelY: closest.pixelY,
+        });
       }
     }
     return hits;
@@ -2081,7 +2183,15 @@ export class Engine {
           const newY = yScale.invert(py);
           const point = series.data[index];
           if (point) {
-            point.y = newY;
+            const data = series.data.map((candidate, pointIndex) =>
+              pointIndex === index ? { ...candidate, y: newY } : candidate,
+            );
+            this.config = {
+              ...this.config,
+              series: this.config.series.map((candidate) =>
+                candidate.id === seriesId ? { ...candidate, data } : candidate,
+              ),
+            };
             this.bus.emit('pointDrag', {
               seriesId, pointIndex: index, payload: { value: newY }, chartX: px, chartY: py,
             });
@@ -2812,7 +2922,7 @@ export class Engine {
 
   private setupAccessibility(): void {
     const a11y = this.config.accessibility;
-    if (!a11y?.enabled && !a11y) return; // opt-in, but always set basic ARIA
+    if (!a11y || a11y.enabled === false) return;
 
     if (!this.container || typeof document === 'undefined') return;
 
@@ -2860,6 +2970,7 @@ export class Engine {
     if (!s) return;
     const data = (s.processedData ?? s.data) as ProcessedDataPoint[];
 
+    let handled = true;
     switch (e.key) {
       case 'ArrowRight':
       case 'ArrowUp':
@@ -2876,20 +2987,26 @@ export class Engine {
         break;
 
       case 'Tab':
-        // Move to next/prev series
-        if (e.shiftKey) {
-          this.a11yFocusSeriesIdx = Math.max(this.a11yFocusSeriesIdx - 1, 0);
-        } else {
-          this.a11yFocusSeriesIdx = Math.min(this.a11yFocusSeriesIdx + 1, series.length - 1);
-        }
-        this.a11yFocusPointIdx = 0;
+        // Never trap focus inside a chart. PageUp/PageDown move between series.
+        return;
+
+      case 'PageUp':
+      case 'PageDown': {
         e.preventDefault();
+        const direction = e.key === 'PageUp' ? -1 : 1;
+        this.a11yFocusSeriesIdx = Math.max(
+          0,
+          Math.min(this.a11yFocusSeriesIdx + direction, series.length - 1),
+        );
+        this.a11yFocusPointIdx = 0;
+        const focusedSeries = series[this.a11yFocusSeriesIdx]!;
         this.announcePoint(
-          series[this.a11yFocusSeriesIdx]!,
-          (series[this.a11yFocusSeriesIdx]!.processedData ?? series[this.a11yFocusSeriesIdx]!.data)[0],
+          focusedSeries,
+          (focusedSeries.processedData ?? focusedSeries.data)[0],
           0,
         );
         break;
+      }
 
       case 'Home':
         e.preventDefault();
@@ -2915,10 +3032,15 @@ export class Engine {
           });
         }
         break;
+
+      default:
+        handled = false;
     }
 
+    if (!handled) return;
     // Update hovered point for visual feedback
-    this.state.hoveredPoint = { seriesId: s.id, index: this.a11yFocusPointIdx };
+    const focusedSeries = series[this.a11yFocusSeriesIdx] ?? s;
+    this.state.hoveredPoint = { seriesId: focusedSeries.id, index: this.a11yFocusPointIdx };
     this.render();
   }
 

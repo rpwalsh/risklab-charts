@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { resolveTheme, createTheme, getSeriesColor, createHighContrastTheme } from '../../src/themes/ThemeEngine';
 import { defaultTheme } from '../../src/themes/defaultTheme';
 import { darkTheme } from '../../src/themes/darkTheme';

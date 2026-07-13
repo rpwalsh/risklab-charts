@@ -1,7 +1,7 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — SyncController
 // Synchronize pan, zoom, hover, crosshair, and selection across multiple chart
-// instances. Equivalent to (but more powerful than) Highcharts Boost sync.
+// instances. Equivalent to (but more powerful than) commercial charting Boost sync.
 // ============================================================================
 
 import type { Engine, SyncableChart } from '../core/Engine';

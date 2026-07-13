@@ -1,7 +1,7 @@
 // ============================================================================
 // RiskLab Charts — Statistics Plugin
 // Regression lines, moving averages, bands, trendlines, outlier detection.
-// Surpasses Highcharts' "regression" add-on — no extra cost, built-in.
+// Surpasses commercial charting' "regression" add-on — no extra cost, built-in.
 // ============================================================================
 
 import type { BaseRenderer } from '../renderers/BaseRenderer';

@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Data Connectors
 // Load, stream, and transform data from any source into chart-ready format.
 //

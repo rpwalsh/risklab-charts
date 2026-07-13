@@ -1,8 +1,8 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Item Chart (Parliament / Waffle Chart)
 // Rows of uniform icons/shapes representing proportional quantities.
 // Used for: parliament seat counts, survey responses, pictorial data.
-// Equivalent to Highcharts premium "item" series — free in RiskLab Charts.
+// Equivalent to commercial charting premium "item" series — free in RiskLab Charts.
 // ============================================================================
 
 import type { BaseRenderer } from '../renderers/BaseRenderer';

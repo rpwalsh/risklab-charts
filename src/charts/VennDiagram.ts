@@ -1,7 +1,7 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Venn Diagram Renderer
 // Renders proportional Euler / Venn diagrams with overlapping circles.
-// Highcharts charges for this as "venn" series — free in RiskLab Charts.
+// commercial charting charges for this as "venn" series — free in RiskLab Charts.
 //
 // Algorithm: Iterative force-based layout to minimise intersection-area error,
 // then renders circles with semi-transparent overlap fills.

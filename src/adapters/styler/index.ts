@@ -1,13 +1,13 @@
 // ============================================================================
-// RiskLab Charts — StyleX / xstyle Adapter Barrel Export
+// RiskLab Charts — RiskLab Styler / xstyle Adapter Barrel Export
 // ============================================================================
 
 export {
-  stylexToTheme,
+  stylerTokensToTheme,
   chartStyles,
   themeToCSSVars,
   applyThemeCSSVars,
   mergeClassNames,
-  type StyleXTokens,
-  type StyleXAdapterOptions,
-} from './StyleXAdapter';
+  type StylerTokens,
+  type StylerAdapterOptions,
+} from './StylerAdapter';

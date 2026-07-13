@@ -1,8 +1,8 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Column Range & Dumbbell Charts
 // ColumnRange: vertical bars spanning [low, high] at each x category.
 // Dumbbell: like ColumnRange but rendered as a thin line + two endpoint dots.
-// Both are Highcharts "columnrange" / "dumbbell" series types — free here.
+// Both are commercial charting "columnrange" / "dumbbell" series types — free here.
 // ============================================================================
 
 import type { BaseRenderer } from '../renderers/BaseRenderer';

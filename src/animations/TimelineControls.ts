@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Timeline Playback UI Controls
 // Renders play/pause, scrubber, speed selector, and frame counter
 // as a DOM overlay beneath the chart

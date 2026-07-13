@@ -77,7 +77,7 @@ export function getLitComponentSource(): string {
   return `
 import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { createLitChart, type LitChartRef } from '@risklab/charts/lit';
+import { createLitChart, type LitChartRef } from '@risklab/charts-lit';
 import type { ChartConfig, ChartType, ThemeConfig } from '@risklab/charts';
 
 @customElement('uc-chart')

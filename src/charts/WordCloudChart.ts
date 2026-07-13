@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Word Cloud Chart
 // Spiral-placement word cloud. Words sized by value, colored by palette.
 // No external dependencies — pure SVG/Canvas.

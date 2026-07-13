@@ -1,7 +1,7 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Organization Chart Renderer
 // Renders hierarchical tree layouts for org charts, family trees, process flows.
-// Equivalent to Highcharts premium "organization" series — and open-source.
+// Equivalent to commercial charting premium "organization" series — and open-source.
 // ============================================================================
 
 import type { BaseRenderer } from '../renderers/BaseRenderer';

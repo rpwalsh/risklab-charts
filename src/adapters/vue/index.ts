@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Vue 3 Adapter
 // Composables for declarative chart usage in Vue 3.
 // Vue 3 is a peer dependency — install vue@^3 separately.

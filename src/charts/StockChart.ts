@@ -1,8 +1,8 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Stock Chart Wrapper
 // Complete stock chart: OHLC/Candlestick + Volume + Navigator + Range Selector
 // + Bollinger Bands + MACD/RSI overlays.
-// Designed to beat Highcharts Stock out of the box.
+// Designed to beat commercial charting Stock out of the box.
 // ============================================================================
 
 import { Engine } from '../core/Engine';

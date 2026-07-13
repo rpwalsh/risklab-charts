@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — React: <StockChart /> Component
 // Pre-configured stock/financial chart with Navigator, RangeSelector, OHLC,
 // Volume panel, and synchronized Statistics plugin. Zero config required.

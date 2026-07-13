@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Angular Adapter
 // Production-grade Angular component + service for RiskLab charts.
 // Works with Angular 14+ (standalone components) and NgModule-style apps.

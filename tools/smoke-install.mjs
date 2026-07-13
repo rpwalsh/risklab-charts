@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { mkdtemp, mkdir, rm, access, readFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, access, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -166,7 +166,31 @@ async function runScenario({ scenario, tarballs, tempRoot }) {
   }
 
   const manifest = JSON.parse(await readFile(path.join(projectDir, 'package.json'), 'utf8'));
+  if (scenario.name === 'charts-adapters') await executeEntrypoints(projectDir);
   console.log(`Verified ${scenario.name}: ${Object.keys(manifest.dependencies ?? {}).length} installed dependencies.`);
+}
+
+async function executeEntrypoints(projectDir) {
+  const coreManifest = JSON.parse(await readFile(path.join(projectDir, 'node_modules', '@risklab', 'charts', 'package.json'), 'utf8'));
+  const rootExports = Object.keys(coreManifest.exports).map((key) => key === '.' ? '@risklab/charts' : `@risklab/charts/${key.slice(2)}`);
+  const specifiers = [...rootExports, ...chartAdapterNames];
+  await writeFile(path.join(projectDir, 'verify-esm.mjs'), `
+    const names = ${JSON.stringify(specifiers)};
+    for (const name of names) {
+      const value = await import(name);
+      if (!value || typeof value !== 'object') throw new Error('Empty ESM entrypoint: ' + name);
+    }
+  `, 'utf8');
+  await writeFile(path.join(projectDir, 'verify-cjs.cjs'), `
+    const names = ${JSON.stringify(specifiers)};
+    for (const name of names) {
+      const value = require(name);
+      if (!value || (typeof value !== 'object' && typeof value !== 'function')) throw new Error('Empty CommonJS entrypoint: ' + name);
+    }
+  `, 'utf8');
+  await execNode(['verify-esm.mjs'], projectDir);
+  await execNode(['verify-cjs.cjs'], projectDir);
+  console.log(`Executed ${specifiers.length} ESM and CommonJS entrypoints.`);
 }
 
 function isUnexpectedInstallError(error) {
@@ -211,6 +235,17 @@ async function execNpm(args, cwd) {
       const stderrText = stderr ? `\nSTDERR:\n${stderr}` : '';
       reject(new Error(`npm ${args.join(' ')} failed in ${cwd}.${stdoutText}${stderrText}`));
     });
+  });
+}
+
+async function execNode(args, cwd) {
+  return await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = ''; let stderr = '';
+    child.stdout.on('data', (chunk) => { stdout += String(chunk); });
+    child.stderr.on('data', (chunk) => { stderr += String(chunk); });
+    child.on('error', reject);
+    child.on('close', (code) => code === 0 ? resolve({ stdout, stderr }) : reject(new Error(`node ${args.join(' ')} failed in ${cwd}.\n${stdout}\n${stderr}`)));
   });
 }
 

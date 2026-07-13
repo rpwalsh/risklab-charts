@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — PivotChart
 // Takes a flat array of row objects, pivots by row/col/value fields,
 // and renders any supported chart type on the cross-tabulated output.

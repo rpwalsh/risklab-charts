@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Data Pipeline
 // Transforms raw SeriesConfig[] into render-ready processed data
 // Handles stacking, sorting, filtering, aggregation, and time-slicing
@@ -38,12 +38,12 @@ export class DataPipeline {
 
   constructor() {
     // Register built-in transforms in order.
-    // IMPORTANT: numeric conversion (order 1) must run before decimation (order 5)
-    // so that LTTB/MinMax have valid xNum/yNum values to work with.
+    // Numeric conversion runs first. Continuous data must be sorted before
+    // decimation because both supported algorithms assume monotonic x values.
     this.register('numeric-convert', convertToNumeric, 1);
     this.register('filter-visible', filterVisibleSeries, 2);
+    this.register('sort-data', sortSeriesData, 3);
     this.register('decimate', applyDecimation, 5);
-    this.register('sort-data', sortSeriesData, 10);
     this.register('compute-stacks', computeStacks, 20);
   }
 
@@ -69,14 +69,19 @@ export class DataPipeline {
    * Run the full pipeline, returning processed series.
    */
   process(series: SeriesConfig[], config: ChartConfig): ProcessedSeries[] {
-    let data = structuredClone(series);
+    // Built-in transforms are immutable. Avoid a full structured clone here:
+    // it duplicated metadata, dates, and large point arrays on every render.
+    let data = series;
 
     for (const transform of this.transforms) {
       const result = transform.fn(data, config);
       if (result) data = result;
     }
 
-    return data as ProcessedSeries[];
+    return data.map((item) => ({
+      ...item,
+      processedData: item.data as ProcessedDataPoint[],
+    }));
   }
 
   /**
@@ -88,13 +93,20 @@ export class DataPipeline {
     frameTime: DataValue,
   ): SeriesConfig[] {
     const frameNum = toNumber(frameTime);
+    if (!Number.isFinite(frameNum)) return series;
     return series.map((s) => ({
       ...s,
       data: s.data.filter((d) => {
         // Prefer explicit meta[timeKey]; fall back to d.x only when it's numeric/Date
         const raw = d.meta?.[timeKey];
-        if (raw !== undefined) return toNumber(raw as DataValue) <= frameNum;
-        if (typeof d.x === 'number' || d.x instanceof Date) return toNumber(d.x) <= frameNum;
+        if (raw !== undefined) {
+          const value = toNumber(raw as DataValue);
+          return Number.isFinite(value) && value <= frameNum;
+        }
+        if (typeof d.x === 'number' || d.x instanceof Date) {
+          const value = toNumber(d.x);
+          return Number.isFinite(value) && value <= frameNum;
+        }
         // String x-values have no numeric time meaning — keep the point
         return true;
       }),
@@ -115,6 +127,7 @@ function sortSeriesData(series: SeriesConfig[]): SeriesConfig[] {
     // Only sort for continuous chart types
     const sortable = ['line', 'area', 'stackedArea', 'scatter', 'bubble'];
     if (!sortable.includes(s.type)) return s;
+    if (s.data.some((point) => !Number.isFinite(toNumber(point.x)))) return s;
     return {
       ...s,
       data: [...s.data].sort((a, b) => toNumber(a.x) - toNumber(b.x)),
@@ -134,7 +147,8 @@ function computeStacks(series: SeriesConfig[], _config: ChartConfig): SeriesConf
     }
   }
 
-  // For each stack group, compute cumulative values
+  // For each stack group, positive and negative values accumulate away from
+  // zero independently. This preserves the meaning of mixed-sign stacks.
   for (const [, group] of groups) {
     const xValues = new Set<string>();
     for (const s of group) {
@@ -143,17 +157,19 @@ function computeStacks(series: SeriesConfig[], _config: ChartConfig): SeriesConf
       }
     }
 
-    const cumulative = new Map<string, number>();
+    const positive = new Map<string, number>();
+    const negative = new Map<string, number>();
     for (const xv of xValues) {
-      cumulative.set(xv, 0);
+      positive.set(xv, 0);
+      negative.set(xv, 0);
     }
 
     for (const s of group) {
       const processedData: ProcessedDataPoint[] = [];
       for (const d of s.data) {
         const xKey = String(d.x);
-        const base = cumulative.get(xKey) ?? 0;
         const yVal = toNumber(d.y);
+        const base = yVal >= 0 ? (positive.get(xKey) ?? 0) : (negative.get(xKey) ?? 0);
         processedData.push({
           ...d,
           xNum: toNumber(d.x),
@@ -161,10 +177,13 @@ function computeStacks(series: SeriesConfig[], _config: ChartConfig): SeriesConf
           y0: base,
           y1: base + yVal,
         });
-        cumulative.set(xKey, base + yVal);
+        if (Number.isFinite(yVal)) {
+          if (yVal >= 0) positive.set(xKey, base + yVal);
+          else negative.set(xKey, base + yVal);
+        }
       }
-      // Store processed data on the series object in-place (by group reference)
-      (s as SeriesConfig & { data: ProcessedDataPoint[] }).data = processedData;
+      const index = series.indexOf(s);
+      if (index >= 0) series[index] = { ...s, data: processedData };
     }
   }
 
@@ -188,7 +207,7 @@ function convertToNumeric(series: SeriesConfig[]): SeriesConfig[] {
 // ---------------------------------------------------------------------------
 
 export function toNumber(val: DataValue): number {
-  if (val == null) return 0;
+  if (val == null) return Number.NaN;
   if (typeof val === 'number') return val;
   if (val instanceof Date) return val.getTime();
   const n = Number(val);
@@ -198,7 +217,7 @@ export function toNumber(val: DataValue): number {
     const ts = Date.parse(val);
     if (!Number.isNaN(ts)) return ts;
   }
-  return 0;
+  return Number.NaN;
 }
 
 // ---------------------------------------------------------------------------
@@ -307,6 +326,9 @@ function applyDecimation(series: SeriesConfig[]): SeriesConfig[] {
     const threshold = dec.threshold ?? 1000;
     const data = s.data as (DataPoint & { xNum: number; yNum: number })[];
     if (data.length <= threshold) return s;
+    // Preserve invalid points as explicit gaps. Decimating across them would
+    // invent a continuous line through missing or malformed observations.
+    if (data.some((point) => !Number.isFinite(point.xNum) || !Number.isFinite(point.yNum))) return s;
 
     const decimated = dec.algorithm === 'minmax'
       ? decimateMinMax(data, threshold)

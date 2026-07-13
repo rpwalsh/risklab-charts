@@ -89,4 +89,13 @@ describe('chart family barrels', () => {
     expect(THREE_D_CHART_TYPES).toEqual(expect.arrayContaining(required));
     expect(new Set(THREE_D_CHART_TYPES).size).toBe(THREE_D_CHART_TYPES.length);
   });
+
+  it('publishes exactly 120 unique renderer types across the package registries', () => {
+    const allTypes = [...BASIC_CHART_TYPES, ...ADVANCED_CHART_TYPES, ...THREE_D_CHART_TYPES];
+    expect(BASIC_CHART_TYPES).toHaveLength(63);
+    expect(ADVANCED_CHART_TYPES).toHaveLength(26);
+    expect(THREE_D_CHART_TYPES).toHaveLength(31);
+    expect(allTypes).toHaveLength(120);
+    expect(new Set(allTypes).size).toBe(120);
+  });
 });

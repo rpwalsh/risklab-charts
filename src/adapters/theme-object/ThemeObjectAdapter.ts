@@ -1,28 +1,28 @@
 // ============================================================================
-// RiskLab Charts — MUI Theme Adapter
-// Converts Material UI theme tokens into RiskLab ThemeConfig
-// Supports MUI v5/v6 palette, typography, spacing, and shape
+// RiskLab Charts — theme object Theme Adapter
+// Converts component design system theme tokens into RiskLab ThemeConfig
+// Supports portable palette, typography, spacing, and shape contracts
 // ============================================================================
 
 import type { ThemeConfig } from '../../core/types';
 
-// ─── Minimal MUI theme shape (avoids hard dep on @mui/material) ─────────────
+// ─── Minimal application theme shape (avoids hard dep on external-theme-package) ─────────────
 
-interface MuiPaletteColor {
+interface ThemePaletteColor {
   main: string;
   light?: string;
   dark?: string;
   contrastText?: string;
 }
 
-interface MuiPalette {
+interface ThemeObjectPalette {
   mode?: 'light' | 'dark';
-  primary?: MuiPaletteColor;
-  secondary?: MuiPaletteColor;
-  error?: MuiPaletteColor;
-  warning?: MuiPaletteColor;
-  info?: MuiPaletteColor;
-  success?: MuiPaletteColor;
+  primary?: ThemePaletteColor;
+  secondary?: ThemePaletteColor;
+  error?: ThemePaletteColor;
+  warning?: ThemePaletteColor;
+  info?: ThemePaletteColor;
+  success?: ThemePaletteColor;
   grey?: Record<string | number, string>;
   text?: {
     primary?: string;
@@ -41,7 +41,7 @@ interface MuiPalette {
   };
 }
 
-interface MuiTypography {
+interface ThemeObjectTypography {
   fontFamily?: string;
   fontSize?: number;
   h1?: { fontFamily?: string; fontSize?: string | number; fontWeight?: number };
@@ -55,23 +55,23 @@ interface MuiTypography {
   caption?: { fontFamily?: string; fontSize?: string | number };
 }
 
-interface MuiShape {
+interface ThemeObjectShape {
   borderRadius?: number;
 }
 
-export interface MuiThemeLike {
-  palette?: MuiPalette;
-  typography?: MuiTypography;
-  shape?: MuiShape;
+export interface PortableThemeObject {
+  palette?: ThemeObjectPalette;
+  typography?: ThemeObjectTypography;
+  shape?: ThemeObjectShape;
   spacing?: (...args: number[]) => string;
 }
 
 // ─── Adapter Options ────────────────────────────────────────────────────────
 
-export interface MuiAdapterOptions {
-  /** Map additional MUI palette colors to chart series palette */
+export interface ThemeObjectAdapterOptions {
+  /** Map additional theme object palette colors to chart series palette */
   extraColors?: string[];
-  /** Use MUI paper background instead of default */
+  /** Use surface background instead of default */
   usePaperBackground?: boolean;
   /** Override specific chart theme properties after conversion */
   overrides?: Partial<ThemeConfig>;
@@ -80,24 +80,24 @@ export interface MuiAdapterOptions {
 // ─── Conversion ─────────────────────────────────────────────────────────────
 
 /**
- * Convert a Material UI theme object to a RiskLab ThemeConfig.
+ * Convert a component design system theme object to a RiskLab ThemeConfig.
  *
  * ```ts
- * import { useTheme } from '@mui/material/styles';
- * import { muiToRiskLabTheme } from '@risklab/charts/mui';
+ * import { useTheme } from 'application-theme';
+ * import { themeObjectToRiskLabTheme } from '@risklab/charts/theme-object';
  *
- * const muiTheme = useTheme();
- * const chartTheme = muiToRiskLabTheme(muiTheme);
+ * const themeObject = useTheme();
+ * const chartTheme = themeObjectToRiskLabTheme(themeObject);
  * ```
  */
-export function muiToRiskLabTheme(
-  muiTheme: MuiThemeLike,
-  options: MuiAdapterOptions = {}
+export function themeObjectToRiskLabTheme(
+  themeObject: PortableThemeObject,
+  options: ThemeObjectAdapterOptions = {}
 ): ThemeConfig {
-  const { palette = {}, typography = {}, shape = {} } = muiTheme;
+  const { palette = {}, typography = {}, shape = {} } = themeObject;
   const { extraColors = [], usePaperBackground = false, overrides = {} } = options;
 
-  // Build series color palette from MUI semantic colors
+  // Build series color palette from portable semantic colors
   const seriesColors: string[] = [
     palette.primary?.main ?? '#1976d2',
     palette.secondary?.main ?? '#9c27b0',
@@ -141,8 +141,8 @@ export function muiToRiskLabTheme(
   const gridColor = palette.divider ?? (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)');
 
   const theme: ThemeConfig = {
-    id: `mui-${isDark ? 'dark' : 'light'}`,
-    name: `MUI ${isDark ? 'Dark' : 'Light'}`,
+    id: `theme-object-${isDark ? 'dark' : 'light'}`,
+    name: `theme object ${isDark ? 'Dark' : 'Light'}`,
     palette: seriesColors,
     backgroundColor: background,
     textColor: textPrimary,
@@ -167,7 +167,7 @@ export function muiToRiskLabTheme(
     },
     tokens: {
       borderRadius,
-      muiMode: isDark ? 'dark' : 'light',
+      sourceMode: isDark ? 'dark' : 'light',
     },
     // Deep merge overrides
     ...overrides,
@@ -177,16 +177,16 @@ export function muiToRiskLabTheme(
 }
 
 /**
- * Creates a React hook-style adapter that watches MUI theme changes.
- * Call this inside a component that has access to MUI's ThemeProvider.
+ * Creates a React hook-style adapter that watches application theme changes.
+ * Call this inside a component that has access to an application theme provider.
  *
  * ```tsx
- * import { useTheme } from '@mui/material/styles';
- * import { useMuiChartTheme } from '@risklab/charts/mui';
+ * import { useTheme } from 'application-theme';
+ * import { createChartTheme } from '@risklab/charts/theme-object';
  *
  * function MyChart() {
- *   const muiTheme = useTheme();
- *   const chartTheme = useMuiChartTheme(muiTheme);
+ *   const themeObject = useTheme();
+ *   const chartTheme = createChartTheme(themeObject);
  *   return <Chart theme={chartTheme} series={...} />;
  * }
  * ```
@@ -195,24 +195,24 @@ export function muiToRiskLabTheme(
  * inside a component where `useTheme()` has already been called. The actual
  * memoization should happen with useMemo in the consuming component.
  */
-export function createMuiChartTheme(
-  muiTheme: MuiThemeLike,
-  options?: MuiAdapterOptions
+export function createChartTheme(
+  themeObject: PortableThemeObject,
+  options?: ThemeObjectAdapterOptions
 ): ThemeConfig {
-  return muiToRiskLabTheme(muiTheme, options);
+  return themeObjectToRiskLabTheme(themeObject, options);
 }
 
 /**
- * Maps MUI spacing function to chart padding values.
+ * Maps theme object spacing function to chart padding values.
  */
-export function muiSpacingToChartPadding(
-  muiTheme: MuiThemeLike,
+export function themeSpacingToChartPadding(
+  themeObject: PortableThemeObject,
   top = 2,
   right = 2,
   bottom = 2,
   left = 2
 ): { top: number; right: number; bottom: number; left: number } {
-  const spacing = muiTheme.spacing;
+  const spacing = themeObject.spacing;
   if (!spacing) {
     return { top: top * 8, right: right * 8, bottom: bottom * 8, left: left * 8 };
   }

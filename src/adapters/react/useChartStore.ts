@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — React: useChartStore Hook
 // Modern React 18/19 hook using useSyncExternalStore for tear-free reads
 // of chart state. Works with concurrent rendering & React Server Components.

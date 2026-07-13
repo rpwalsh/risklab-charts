@@ -1,7 +1,7 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Boost Module
 // Web Worker–based data downsampling and processing for 1M+ point datasets.
-// Surpasses Highcharts Boost: no GL artifacts, no series limit, pure TS.
+// Surpasses commercial charting Boost: no GL artifacts, no series limit, pure TS.
 // ============================================================================
 
 import type { DataPoint } from '../core/types';

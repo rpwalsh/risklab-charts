@@ -1,8 +1,8 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Tree Graph Chart
 // Renders an node-link tree with orthogonal or curved connectors.
 // Different from Treemap (which fills area with nested rectangles).
-// Equivalent to Highcharts premium "treegraph" series — free in RiskLab Charts.
+// Equivalent to commercial charting premium "treegraph" series — free in RiskLab Charts.
 //
 // Layout: Reingold-Tilford algorithm for O(n) orthogonal tree layout.
 // ============================================================================

@@ -1,7 +1,7 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Packed Bubble Chart
 // Circles sized by value, packed together using a force-directed simulation.
-// Equivalent to Highcharts premium "packedbubble" series — free in RiskLab Charts.
+// Equivalent to commercial charting premium "packedbubble" series — free in RiskLab Charts.
 // ============================================================================
 
 import type { BaseRenderer } from '../renderers/BaseRenderer';

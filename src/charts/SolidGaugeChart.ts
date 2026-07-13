@@ -1,8 +1,8 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Solid Gauge Chart
 // A donut-like gauge where the arc is fully filled to the value rather than
 // using a needle. Supports multiple concentric bands (one per series).
-// Equivalent to Highcharts premium "solidgauge" — free in RiskLab Charts.
+// Equivalent to commercial charting premium "solidgauge" — free in RiskLab Charts.
 // ============================================================================
 
 import type { BaseRenderer } from '../renderers/BaseRenderer';

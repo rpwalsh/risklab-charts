@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — Strip Chart (categorical dot strip / jitter plot)
 // Shows individual data points along a numeric axis grouped by category
 // ============================================================================

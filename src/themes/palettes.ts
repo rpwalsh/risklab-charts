@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // RiskLab Charts — 50 Color Palettes (Light & Dark Mode)
 // Accessible, beautiful, production-grade. Each has 12 series colors.
 // ============================================================================
@@ -53,8 +53,10 @@ export function paletteToTheme(pair: PalettePair, mode: 'light' | 'dark'): Theme
 
 export const palettes: PalettePair[] = [
   { id: 'dracula', name: 'Dracula', category: 'creative',
-    light: { palette: ['#6d28d9','#db2777','#0891b2','#059669','#d97706','#dc2626','#4f46e5','#0f766e','#9333ea','#be123c','#0369a1','#4d7c0f'], background: '#f8f8f2', surface: '#ffffff', text: '#282a36', textSecondary: '#6272a4', grid: '#e7e7df', axis: '#b8b8ae', tooltipBg: '#ffffff', tooltipText: '#282a36', tooltipBorder: '#d7d7cf' },
-    dark: { palette: ['#bd93f9','#ff79c6','#8be9fd','#50fa7b','#f1fa8c','#ff5555','#6272a4','#69ff94','#d6acff','#ff92df','#a4ffff','#ffffa5'], background: '#282a36', surface: '#343746', text: '#f8f8f2', textSecondary: '#b8b8c5', grid: '#3f4252', axis: '#6272a4', tooltipBg: '#343746', tooltipText: '#f8f8f2', tooltipBorder: '#6272a4' } },
+    light: { palette: ['#6d28d9','#db2777','#0891b2','#059669','#d97706','#dc2626','#4f46e5','#0f766e','#9333ea','#be123c','#0369a1','#4d7c0f'],
+      background: '#f8f8f2', surface: '#ffffff', text: '#282a36', textSecondary: '#6272a4', grid: '#e7e7df', axis: '#b8b8ae', tooltipBg: '#ffffff', tooltipText: '#282a36', tooltipBorder: '#d7d7cf' },
+    dark: { palette: ['#bd93f9','#ff79c6','#8be9fd','#50fa7b','#f1fa8c','#ff5555','#6272a4','#69ff94','#d6acff','#ff92df','#a4ffff','#ffffa5'],
+      background: '#282a36', surface: '#343746', text: '#f8f8f2', textSecondary: '#b8b8c5', grid: '#3f4252', axis: '#6272a4', tooltipBg: '#343746', tooltipText: '#f8f8f2', tooltipBorder: '#6272a4' } },
   // ──────────────────────── CORPORATE ────────────────────────
   { id: 'midnight-pro', name: 'Midnight Pro', category: 'corporate',
     light: { palette: ['#1e40af','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#be185d','#4f46e5','#15803d','#ea580c','#7e22ce','#0369a1'],
