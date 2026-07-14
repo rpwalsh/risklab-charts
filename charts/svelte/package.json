@@ -32,16 +32,16 @@
     "dataviz",
     "risklab"
   ],
-  "author": "Ryan Walsh",
+  "author": "Sarah Walsh",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rpwalsh/risklab-charts",
+    "url": "https://github.com/devgrrl/risklab-charts",
     "directory": "charts/svelte"
   },
-  "homepage": "https://rpwalsh.github.io/",
+  "homepage": "https://devgrrl.github.io/",
   "bugs": {
-    "url": "https://github.com/rpwalsh/risklab-charts/issues"
+    "url": "https://github.com/devgrrl/risklab-charts/issues"
   },
   "publishConfig": {
     "access": "public"
