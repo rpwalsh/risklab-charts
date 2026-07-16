@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "type": "module",
     "private": false,
-    "description": "@risklab/charts - Typed analytical charting engine with basic and advanced chart families for serious analytical software.",
+    "description": "Typed charting and visualization engine for analytical interfaces, operational dashboards, and data-heavy applications.",
     "workspaces": [
         "charts/react",
         "charts/vanilla",
@@ -184,7 +184,7 @@
     ],
     "funding": {
         "type": "github",
-        "url": "https://github.com/sponsors/rpwalsh"
+        "url": "https://github.com/sponsors/devgrrl"
     },
     "scripts": {
         "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.cjs.json && node tools/finalize-output.mjs .",
@@ -199,7 +199,7 @@
         "typecheck": "tsc --noEmit",
         "size": "node -e \"const fs=require('fs'),p=f=>fs.statSync(f).size;console.log('ESM entry:',Math.round(p('dist/esm/index.js')/1024)+'kB');console.log('CJS entry:',Math.round(p('dist/cjs/index.js')/1024)+'kB')\"",
         "check:source": "node tools/check-source.mjs",
-        "validate": "npm run check:source && npm run clean && npm run build && npm run typecheck && npm run test && npm run size",
+        "validate": "npm run check:source && npm run clean && npm run build && npm run typecheck && npm run test:coverage && npm run size",
         "build:charts-react": "npm run build --workspace=charts/react",
         "build:charts-vanilla": "npm run build --workspace=charts/vanilla",
         "build:charts-vue": "npm run build --workspace=charts/vue",
@@ -296,6 +296,7 @@
         }
     },
     "devDependencies": {
+        "@angular/core": "^21.2.18",
         "@eslint/js": "^9.0.0",
         "@playwright/test": "^1.55.0",
         "@types/node": "^25.5.0",
