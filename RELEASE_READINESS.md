@@ -6,7 +6,7 @@
 - Validation: `npm run release:check`
 - Tarball consumer test: `npm run smoke:install`
 - Release workflow: `.github/workflows/release.yml`
-- License: Apache-2.0 with package-specific `NOTICE` files
+- License: Proprietary (see LICENSE and NOTICE)
 - ESM and CommonJS: root, documented subpaths, and adapter entrypoints
 - Browser support: modern evergreen browsers; browser lifecycle validation runs in Chromium
 - Publication order: root package, then framework adapter packages
