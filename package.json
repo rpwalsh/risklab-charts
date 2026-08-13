@@ -184,7 +184,7 @@
     ],
     "funding": {
         "type": "github",
-        "url": "https://github.com/sponsors/devgrrl"
+        "url": "https://github.com/sponsors/rpwalsh"
     },
     "scripts": {
         "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.cjs.json && node tools/finalize-output.mjs .",
@@ -249,16 +249,16 @@
         "dark-mode",
         "risklab"
     ],
-    "author": "Sarah Walsh",
+    "author": "Ryan P. Walsh",
     "license": "Apache-2.0",
     "repository": {
         "type": "git",
-        "url": "https://github.com/devgrrl/risklab-charts",
+        "url": "https://github.com/rpwalsh/risklab-charts",
         "directory": "."
     },
-    "homepage": "https://devgrrl.github.io/",
+    "homepage": "https://rpwalsh.github.io/",
     "bugs": {
-        "url": "https://github.com/devgrrl/risklab-charts/issues"
+        "url": "https://github.com/rpwalsh/risklab-charts/issues"
     },
     "publishConfig": {
         "access": "public"

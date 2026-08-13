@@ -2,7 +2,7 @@
 
 RiskLab Charts is the split-repo home for RiskLab's chart engine and adapter
 packages. This repo owns the public chart surfaces, theme bridges, and chart
-family taxonomy that back the live demos at `https://devgrrl.github.io/`.
+family taxonomy that back the live demos at `https://rpwalsh.github.io/`.
 
 ## Packages
 
@@ -34,7 +34,7 @@ The lane policy lives in [docs/chart-family-taxonomy.md](docs/chart-family-taxon
 
 ## Quick links
 
-- Live demos: `https://devgrrl.github.io/`
+- Live demos: `https://rpwalsh.github.io/`
 - Getting started: [docs/getting-started.md](docs/getting-started.md)
 - Design-system guidance: [docs/design-system-integration.md](docs/design-system-integration.md)
 - Security reporting: [SECURITY.md](SECURITY.md)
