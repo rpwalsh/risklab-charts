@@ -1,6 +1,6 @@
 {
   "name": "@risklab/charts-angular",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Angular adapter package for @risklab/charts.",
   "main": "dist/cjs/index.js",
@@ -47,7 +47,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@risklab/charts": "1.0.0",
+    "@risklab/charts": "1.0.1",
     "@angular/core": ">=17.0.0"
   },
   "devDependencies": {

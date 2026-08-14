@@ -1,6 +1,6 @@
 {
   "name": "@risklab/charts-lit",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Lit adapter package for @risklab/charts.",
   "main": "dist/cjs/index.js",
@@ -48,7 +48,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@risklab/charts": "1.0.0",
+    "@risklab/charts": "1.0.1",
     "lit": ">=3.0.0"
   },
   "devDependencies": {
