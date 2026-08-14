@@ -4,6 +4,10 @@ RiskLab Charts is the split-repo home for RiskLab's chart engine and adapter
 packages. This repo owns the public chart surfaces, theme bridges, and chart
 family taxonomy that back the live demos at `https://rpwalsh.github.io/`.
 
+![RiskLab Command chart catalog showing a live multi-series line chart with config JSON and SDK snippets](docs/screenshots/demo.png)
+
+Live demo: [rpwalsh.github.io/?view=all](https://rpwalsh.github.io/?view=all)
+
 ## Packages
 
 - `@risklab/charts`: core chart engine, themes, plugins, and chart families
