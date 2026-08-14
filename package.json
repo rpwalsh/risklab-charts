@@ -1,6 +1,6 @@
 {
     "name": "@risklab/charts",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "type": "module",
     "private": false,
     "description": "Typed charting and visualization engine for analytical interfaces, operational dashboards, and data-heavy applications.",

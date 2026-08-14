@@ -117,4 +117,18 @@ describe('React adapter surfaces', () => {
     expect(mockEngine.update).toHaveBeenCalled();
     expect(mockEngine.update.mock.calls.at(-1)?.[0]).toHaveProperty('legend', undefined);
   });
+
+  it('registers a default y-axis when only xAxis is provided', async () => {
+    const series: SeriesConfig[] = [
+      { id: 's1', name: 'Series 1', type: 'line', data: [{ x: 1, y: 10 }] },
+    ];
+    await act(async () => {
+      root.render(<Chart series={series} xAxis={{ type: 'time' }} />);
+    });
+
+    const axes = mockEngine.update.mock.calls.at(-1)?.[0]?.axes;
+    expect(axes).toHaveLength(2);
+    expect(axes?.[0]).toMatchObject({ id: 'x0', type: 'time' });
+    expect(axes?.[1]).toMatchObject({ id: 'y0', position: 'left' });
+  });
 });

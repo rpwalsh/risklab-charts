@@ -52,7 +52,7 @@ async function runBuild() {
     const child = spawn(npmCmd, ['run', 'build'], {
       cwd: repoRoot,
       stdio: 'inherit',
-      shell: false,
+      shell: process.platform === 'win32',
     });
 
     child.on('exit', (code) => {

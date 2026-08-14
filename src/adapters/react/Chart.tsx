@@ -228,14 +228,15 @@ export const Chart = memo(
         ...plugins,
       ];
 
-      // Build axes array from xAxis/yAxis props  
+      // Providing only one of xAxis/yAxis must not leave the other
+      // unregistered - Engine only infers defaults when `config.axes` is
+      // entirely absent, not when it's partially specified.
       const axes: AxisConfig[] = [];
-      if (xAxis) {
+      if (xAxis || yAxis) {
         const xDefaults: AxisConfig = { id: 'x0', position: 'bottom', type: 'linear' };
         axes.push({ ...xDefaults, ...xAxis });
-      }
-      if (yAxis) {
-        const yAxes = Array.isArray(yAxis) ? yAxis : [yAxis];
+
+        const yAxes = yAxis ? (Array.isArray(yAxis) ? yAxis : [yAxis]) : [{}];
         yAxes.forEach((ya, i) => {
           const yDefaults: AxisConfig = { id: `y${i}`, position: 'left', type: 'linear' };
           axes.push({ ...yDefaults, ...ya });
